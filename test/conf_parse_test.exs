@@ -5,12 +5,10 @@ defmodule ConfParseTest do
     path = Path.join(["test", "confs", "test.conf"]) |> Path.expand
     conf = path |> Conform.Parse.file
     assert [
-      {['some_int'],'42'},
-      {['debug'],'true'},
       {['log','error','file'],'/var/log/error.log'},
       {['log','console','file'],'/var/log/console.log'},
       {['log','syslog'],'on'},
-      {['sasl','error_logger'],'error'},
+      {['sasl','errlog_type'],'error'},
       {['myapp','some_val'],'foo'}
     ] == conf
   end
