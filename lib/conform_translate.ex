@@ -30,13 +30,12 @@ defmodule Conform.Translate do
   @doc """
   Translate the provided .conf to it's .config representation using the provided schema.
   """
-  @spec to_config(binary, term) :: term
+  @spec to_config(term, term) :: term
   def to_config(conf, schema) do
     case schema do
       [mappings: mappings, translations: translations] ->
-        parsed   = Conform.Parse.parse(conf)
         # Parse the .conf into a map of applications and their settings, applying translations where defined
-        settings = Enum.reduce parsed, %{}, fn {setting, value}, result ->
+        settings = Enum.reduce conf, %{}, fn {setting, value}, result ->
           # Convert the parsed setting key into the atom used in the schema
           key = binary_to_atom(setting |> Enum.map(&String.from_char_data!/1) |> Enum.join("."))
           # Look for a mapping with the provided name

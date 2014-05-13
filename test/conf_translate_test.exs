@@ -36,7 +36,8 @@ defmodule ConfTranslateTest do
     path   = Path.join(["test", "schemas", "test.schema.exs"])
     schema = path |> Conform.Schema.load
     conf   = schema |> Conform.Translate.to_conf
-    config = Conform.Translate.to_config(conf, schema)
+    parsed = Conform.Parse.parse(conf)
+    config = Conform.Translate.to_config(parsed, schema)
     expect = [
       sasl:  [errlog_type: :all],
       myapp: [
@@ -56,7 +57,8 @@ defmodule ConfTranslateTest do
     path   = Path.join(["test", "schemas", "test.schema.exs"])
     schema = path |> Conform.Schema.load
     conf   = schema |> Conform.Translate.to_conf
-    config = Conform.Translate.to_config(conf, schema)
+    parsed = Conform.Parse.parse(conf)
+    config = Conform.Translate.to_config(parsed, schema)
 
     config_path = Path.join(System.tmp_dir!, "conform_test.config")
     :ok    = config_path |> Conform.Config.write(config)
