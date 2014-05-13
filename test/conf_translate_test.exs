@@ -37,7 +37,7 @@ defmodule ConfTranslateTest do
     schema = path |> Conform.Schema.load
     conf   = schema |> Conform.Translate.to_conf
     config = Conform.Translate.to_config(conf, schema)
-    assert config == [
+    expect = [
       sasl:  [errlog_type: :all],
       myapp: [
         another_val: {:on, []},
@@ -49,6 +49,7 @@ defmodule ConfTranslateTest do
         syslog: :on
       ]
     ]
+    assert Keyword.equal?(expect, config)
   end
 
   test "can write config to disk as Erlang terms in valid app/sys.config format" do
