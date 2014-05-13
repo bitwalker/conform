@@ -96,6 +96,19 @@ This looks pretty much like `config.exs` on steroids. Schemas consist of two typ
 
 After a setting is parsed according to it's mapping, if a translation exists for that setting, the parsed value is passed to the translation function to get the final value for the `.config` file. As you can see above, we expose simplified settings for `myapp.another_val`, but translate them to their more useful format for our code.
 
+The result configuration file generated with the above combined conf and schema files is the following:
+
+```erlang
+[{myapp, [
+  {another_val, {on, [{debug, true}, {tracing, true}]}},
+  {some_val, foo}]},
+ {log, [
+  {error_file, <<"/var/log/error.log">>}]}].
+```
+
+As you can see, if your sysadmins had to work with the above, versus the .conf, it would be quite prone to mistakes, and much harder to understand, particularly with the lack of comments or documentation.
+
+The real beauty of this though is that we can generate a default `myapp.conf` file based on the schema, which includes the default options, and the documentation. You could generate your `config.exs` file from it as well, though I haven't wired that up just yet. The end result is an easy to maintain configuration file for your users, and ideally, a powerful tool for managing your own configuration as well.
 
 ## Rationale 
 
