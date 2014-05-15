@@ -89,6 +89,18 @@ defmodule Conform.Translate do
   defp parse_datatype(:atom, value, _setting),     do: value |> String.from_char_data! |> binary_to_atom
   defp parse_datatype(:binary, value, _setting),   do: value |> String.from_char_data!
   defp parse_datatype(:charlist, value, _setting), do: value
+  defp parse_datatype(:boolean, value, setting) do
+    try do
+      case value |> String.from_char_data! |> binary_to_existing_atom do
+        true  -> true
+        false -> false
+        _     -> raise TranslateError, messagae: "Invalid boolean value for #{setting}."
+      end
+    rescue
+      ArgumentError ->
+        raise TranslateError, messagae: "Invalid boolean value for #{setting}."
+    end
+  end
   defp parse_datatype(:integer, value, setting) do
     case value |> String.from_char_data! |> Integer.parse do
       {num, _} -> num
