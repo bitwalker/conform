@@ -32,7 +32,6 @@
     ],
 
     "myapp.some_val": [
-      to:       "myapp.some_val",
       datatype: :atom,
       default:  :foo,
       doc:      "Just some atom."

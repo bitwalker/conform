@@ -47,7 +47,7 @@ defmodule Conform.Translate do
               # Get the translation function if one is defined
               translation        = Keyword.get(translations, key)
               # Break the setting key name into [app, and setting]
-              [app, app_setting] = Keyword.get(info, :to) |> String.split(".", parts: 2)
+              [app, app_setting] = Keyword.get(info, :to, key |> atom_to_binary) |> String.split(".", parts: 2)
               # Get the default value for this mapping, if defined
               default_value      = Keyword.get(info, :default, nil)
               # Get the datatype for this mapping, falling back to binary if not defined
