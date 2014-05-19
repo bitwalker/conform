@@ -12,7 +12,7 @@ defmodule Mix.Tasks.Conform.New do
   use    Mix.Task
   import Conform.Utils
 
-  def run(args) do
+  def run(_args) do
     app         = Mix.Project.config |> Keyword.get(:app)
     output_path = Path.join([File.cwd!, "config", "#{app}.schema.exs"])
     config_path = Path.join([File.cwd!, "config", "config.exs"])
@@ -46,7 +46,7 @@ defmodule Mix.Tasks.Conform.New do
         |> String.replace("],", "\n    ],")
         |> String.replace("[mappings", "[\n  mappings")
         |> String.replace("translations: []]", " translations: []\n]")
-      contents = Regex.replace(~r/\s+(\".*\"\: \[)/, contents, "\n    \\1")
+      Regex.replace(~r/\s+(\".*\"\: \[)/, contents, "\n    \\1")
     end
   end
 end

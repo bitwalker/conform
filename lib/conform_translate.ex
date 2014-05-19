@@ -12,7 +12,7 @@ defmodule Conform.Translate do
   @doc """
   Translate the provided schema to it's default .conf representation
   """
-  @spec to_conf(term) :: binary
+  @spec to_conf([{atom, term}]) :: binary
   def to_conf(schema) do
     case schema do
       [mappings: mappings, translations: _] ->
