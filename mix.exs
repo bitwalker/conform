@@ -17,7 +17,7 @@ defmodule Conform.Mixfile do
   defp deps, do: []
   defp description, do: "Easy release configuration for Elixir apps."
   defp package do
-    [ files: ["lib", "priv", "mix.exs", "README.md", "LICENSE"],
+    [ files: ["lib", "src", "priv", "mix.exs", "README.md", "LICENSE"],
       contributors: ["Paul Schoenfelder"],
       licenses: ["MIT"],
       links: [ { "GitHub", "https://github.com/bitwalker/conform" } ] ]
