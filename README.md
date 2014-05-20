@@ -1,5 +1,8 @@
 # Conform
 
+[![Build
+Status](https://travis-ci.org/bitwalker/conform.svg?branch=master)](https://travis-ci.org/bitwalker/conform)
+
 The definition of conform is "Adapt or conform oneself to new or different conditions". As this library is used to adapt your application to it's deployed environment, I think it's rather fitting. It's also a play on the word configuration, and the fact that Conform uses an init-style configuration, maintained in a `.conf` file.
 
 Conform is a library for Elixir applications. It's original intended use is in exrm as a means of providing a simplified configuration file for deployed releases, but is flexible enough to work for any use case where you want init-style configuration translated to Elixir/Erlang terms. It is inspired directly by `basho/cuttlefish`, and in fact uses it's .conf parser. Beyond that, you can look at conform as a reduced implementation of cuttlefish in Elixir.
