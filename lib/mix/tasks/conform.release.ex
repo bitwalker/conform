@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Conform.Release do
   use Mix.Task
 
   def run(_) do
-    conform_path = Path.join([__DIR__, "..", "..", ".."]) |> Path.expand
+    conform_path = Path.join(Mix.Project.config |> Keyword.get(:deps_path), "conform") |> Path.expand
     escript_path = Path.join(conform_path, "conform")
     current_path = File.cwd!
     # Switch to conform directory

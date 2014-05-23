@@ -12,7 +12,18 @@ defmodule Mix.Tasks.Conform.New do
   use    Mix.Task
   import Conform.Utils
 
-  def run(_args) do
+  def run(args) do
+    if Mix.Project.umbrella? do
+      config = [build_path: Mix.Project.build_path]
+      for %Mix.Dep{app: app, opts: opts} <- Mix.Dep.Umbrella.loaded do
+        Mix.Project.in_project(app, opts[:path], config, &do_run/1)
+      end
+    else
+      do_run(args)
+    end
+  end
+
+  defp do_run(_) do
     app         = Mix.Project.config |> Keyword.get(:app)
     output_path = Path.join([File.cwd!, "config", "#{app}.schema.exs"])
     config_path = Path.join([File.cwd!, "config", "config.exs"])
