@@ -7,17 +7,15 @@ defmodule Mix.Tasks.Conform.Release do
   use Mix.Task
 
   def run(_) do
-    conform_path = Path.join(Mix.Project.config |> Keyword.get(:deps_path), "conform") |> Path.expand
-    escript_path = Path.join(conform_path, "conform")
-    current_path = File.cwd!
-    # Switch to conform directory
-    File.cd! conform_path
-    # Run escript task
-    result = case Mix.Shell.cmd("mix escriptize", fn _ -> nil end) do
-      0 -> escript_path
-      _ -> {:error, "Failed to generate escript."}
+    [dep] = Mix.Dep.loaded_by_name([:conform], [])
+    result = Mix.Dep.in_dependency dep, [], fn _ ->
+      escript_path = Path.join(File.cwd!, "conform")
+      # Run escript task
+      case Mix.Shell.cmd("mix escriptize", fn _ -> nil end) do
+        0 -> escript_path
+        _ -> {:error, "Failed to generate escript."}
+      end
     end
-    File.cd! current_path
     result
   end
 end
