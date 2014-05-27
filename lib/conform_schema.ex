@@ -6,7 +6,9 @@ defmodule Conform.Schema do
   @doc """
   This exception reflects an issue with the schema
   """
-  defexception SchemaError, message: "Invalid schema. Should be a keyword list containing :mappings and :translations keys."
+  defmodule SchemaError do
+    defexception [:message]
+  end
 
   @doc """
   Load a schema from the provided file path
