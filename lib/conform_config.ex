@@ -9,7 +9,7 @@ defmodule Conform.Config do
   Returns the config as Elixir terms.
   """
   @spec read(binary) :: [term]
-  def read(path), do: path |> List.from_char_data! |> :file.consult
+  def read(path), do: path |> String.to_char_list |> :file.consult
 
   @doc """
   Write a config (in the form of Elixir terms) to disk in
