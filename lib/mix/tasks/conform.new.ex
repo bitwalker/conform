@@ -48,7 +48,7 @@ defmodule Mix.Tasks.Conform.New do
           result
         _ ->
           # Read in the config at `config_path`
-          loaded = Mix.Config.read(config_path)
+          loaded = Mix.Config.read!(config_path)
           # Merge the loaded config over the current config stored in `result`
           Mix.Config.merge(result, loaded)
       end
