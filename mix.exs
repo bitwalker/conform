@@ -3,7 +3,7 @@ defmodule Conform.Mixfile do
 
   def project do
     [app: :conform,
-     version: "0.5.1",
+     version: "0.5.2",
      elixir: "~> 0.14.0",
      escript_main_module: Conform,
      description: description,
