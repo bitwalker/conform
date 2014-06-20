@@ -93,7 +93,7 @@ defmodule Mix.Tasks.Conform.Effective do
           app_config -> Conform.Config.print(app_config)
         end
       :key ->
-        "#{args.options.key}: #{effective |> extract_key(args.options.key)}" |> IO.puts
+        effective |> extract_key(args.options.key) |> Conform.Config.print
     end
   end
 
