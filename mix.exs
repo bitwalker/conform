@@ -5,7 +5,7 @@ defmodule Conform.Mixfile do
     [app: :conform,
      version: "0.7.0",
      elixir: "~> 0.14.2-dev",
-     escript_main_module: Conform,
+     escript: [main_module: Conform],
      description: description,
      package: package,
      deps: deps]
