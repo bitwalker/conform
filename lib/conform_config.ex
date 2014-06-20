@@ -21,6 +21,16 @@ defmodule Conform.Config do
   end
 
   @doc """
+  Print a config to the console
+  """
+  def print(config) do
+    config
+    |> Inspect.Algebra.to_doc(%Inspect.Opts{pretty: true, limit: 1000})
+    |> Inspect.Algebra.pretty(80)
+    |> IO.puts
+  end
+
+  @doc """
   Merge two configs together to produce a new unified config.
   The second argument represents the config with the highest precedence
   in the case of conflicts.
