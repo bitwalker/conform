@@ -27,6 +27,18 @@ Options:
   -h | --help:          Prints this help
 ```
 
+Conform also provides some mix tasks for generating and viewing
+configuration:
+
+- `mix conform.new` - Generates a schema from your current project
+configuration
+- `mix conform.configure` - Generates a default .conf from your schema
+  file and current project configuration
+- `mix conform.effective` - View the effective configuration for your
+  release.
+
+There are additional options for these tasks, use `mix help <task>` to view their documentation.
+
 ## Conf files and Schema files
 
 A conf file looks like the following:
