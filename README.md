@@ -84,7 +84,7 @@ Short and sweet, and most importantly, easy for sysadmins and users to understan
         """,
       to:       "myapp.another_val",
       datatype: [enum: [:all, :some, :none]],
-      default:  :active,
+      default:  :all,
     ]
   ],
 
