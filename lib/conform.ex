@@ -10,21 +10,21 @@ defmodule Conform do
   def main(argv), do: argv |> parse_args |> process
 
   @doc """
-  `argv` can be -h or --help, which returns :help
+  `argv` can be `-h` or `--help`, which returns `:help`.
 
   At a minimum, expects two arguments, `--conf foo.conf`, and `--schema foo.schema.exs`,
   and outputs the translated sys.config file.
 
-  If `--filename <name>` is given, output is named <name>
+  If `--filename <name>` is given, output is named `<name>`.
 
-  If `--output-dir <path>` is given, output is saved to `<path>/<sys|name>.config`
+  If `--output-dir <path>` is given, output is saved to `<path>/<sys|name>.config`.
 
-  If `--config <config>` is given, <config> is merged under the translated
+  If `--config <config>` is given, `<config>` is merged under the translated
   config prior to output. Use this to merge a default sys.config with the
   configuration generated from the source .conf file.
   """
   def parse_args(argv) do
-    parse = OptionParser.parse(argv, switches: [help: :boolean,      conf: :string, 
+    parse = OptionParser.parse(argv, switches: [help: :boolean,      conf: :string,
                                                 schema: :string,     filename: :string,
                                                 output_dir: :string, config: :string],
                                      aliases:  [h:    :help])
