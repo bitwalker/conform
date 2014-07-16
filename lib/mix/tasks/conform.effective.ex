@@ -5,17 +5,17 @@ defmodule Mix.Tasks.Conform.Effective do
 
   ## Examples
 
-    # Print the entire effective configuration
-    mix conform.effective
+      # Print the entire effective configuration
+      mix conform.effective
 
-    # Print the effective configuration for an application
-    mix conform.effective --app myapp
+      # Print the effective configuration for an application
+      mix conform.effective --app myapp
 
-    # Print the effective configuration for a specific setting
-    mix conform.effective --key myapp.key.subkey
+      # Print the effective configuration for a specific setting
+      mix conform.effective --key myapp.key.subkey
 
-    # Print the effective configuration for a specific environment
-    mix conform.effective --env prod
+      # Print the effective configuration for a specific environment
+      mix conform.effective --env prod
 
   Usage of `--app` and `--key` are mutually exclusive, but `--env` can be
   provided for all three use cases.
@@ -87,7 +87,7 @@ defmodule Mix.Tasks.Conform.Effective do
     # Print the configuration as requested
     case args.options.type do
       :all -> Conform.Config.print(effective)
-      :app -> 
+      :app ->
         case effective |> Keyword.get(args.options.app) do
           nil        -> notice "App not found!"
           app_config -> Conform.Config.print(app_config)
