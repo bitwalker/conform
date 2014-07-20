@@ -24,6 +24,37 @@ defmodule Conform.Schema do
   end
 
   @doc """
+  Saves a schema to the provided path
+  """
+  @spec write([term], binary) :: :ok | {:error, term}
+  def write(schema, path) do
+    path |> File.write!(schema |> Conform.Schema.stringify)
+  end
+
+  @doc """
+  Converts a schema to a prettified string
+  """
+  @spec stringify([term]) :: binary
+  def stringify(schema) do
+    if schema == Conform.Schema.empty do
+      schema
+        |> Inspect.Algebra.to_doc(%Inspect.Opts{pretty: true})
+        |> Inspect.Algebra.pretty(10)
+    else
+      contents = schema
+        |> Inspect.Algebra.to_doc(%Inspect.Opts{pretty: true, limit: 1000})
+        |> Inspect.Algebra.pretty(10)
+        |> String.replace("[doc:", "[\n   doc:")
+        |> String.replace("   ", "      ")
+        |> String.replace("[\"", "[\n    \"")
+        |> String.replace("],", "\n    ],")
+        |> String.replace("[mappings", "[\n  mappings")
+        |> String.replace("translations: []]", " translations: []\n]")
+      Regex.replace(~r/\s+(\".*\"\: \[)/, contents, "\n    \\1")
+    end
+  end
+
+  @doc """
   Convert configuration in Elixir terms to schema format.
   """
   @spec from_config([] | [{atom, term}]) :: [{atom, term}]

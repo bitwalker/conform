@@ -34,27 +34,8 @@ defmodule Mix.Tasks.Conform.New do
     # Convert configuration to schema format
     schema = Conform.Schema.from_config(config)
     # Output configuration to `output_path`
-    output_path |> File.write!(schema |> stringify)
+    Conform.Schema.write(schema, output_path)
     info "The generated schema for your project has been placed in config/#{app}.schema.exs"
-  end
-
-  defp stringify(schema) do
-    if schema == Conform.Schema.empty do
-      schema
-        |> Inspect.Algebra.to_doc(%Inspect.Opts{pretty: true})
-        |> Inspect.Algebra.pretty(10)
-    else
-      contents = schema
-        |> Inspect.Algebra.to_doc(%Inspect.Opts{pretty: true, limit: 1000})
-        |> Inspect.Algebra.pretty(10)
-        |> String.replace("[doc:", "[\n   doc:")
-        |> String.replace("   ", "      ")
-        |> String.replace("[\"", "[\n    \"")
-        |> String.replace("],", "\n    ],")
-        |> String.replace("[mappings", "[\n  mappings")
-        |> String.replace("translations: []]", " translations: []\n]")
-      Regex.replace(~r/\s+(\".*\"\: \[)/, contents, "\n    \\1")
-    end
   end
 
 end
