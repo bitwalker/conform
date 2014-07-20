@@ -3,6 +3,10 @@ defmodule Conform.Schema do
   This module is responsible for the handling of schema files.
   """
 
+  @type schema      :: [mappings: [mapping], translations: [translation]]
+  @type mapping     :: {atom, [doc: binary, to: binary, datatype: atom, default: term]}
+  @type translation :: {atom, fun}
+
   @doc """
   This exception reflects an issue with the schema
   """
@@ -11,22 +15,84 @@ defmodule Conform.Schema do
   end
 
   @doc """
-  Load a schema from the provided file path
+  Get the current app's schema path
   """
-  @spec load(binary) :: term
-  def load(path) do
-    case path |> Code.eval_file do
-      {[mappings: _, translations: _] = schema, _} ->
-        schema
-      _ ->
-        raise SchemaError
+  @spec schema_path() :: binary
+  def schema_path(),    do: Mix.Project.config |> Keyword.get(:app) |> schema_path
+  def schema_path(app), do: Path.join([File.cwd!, "config", "#{app}.schema.exs"])
+
+  @doc """
+  Load a schema either by name or from the provided path.
+  """
+  @spec load!(binary | atom) :: schema
+  def load!(path) when is_binary(path) do
+    if path |> File.exists? do
+      case path |> Code.eval_file do
+        {[mappings: _, translations: _] = schema, _} ->
+          schema
+        _ ->
+          raise SchemaError
+      end
+    else
+      raise SchemaError, message: "Schema at #{path} doesn't exist!"
     end
+  end
+  def load!(name) when is_atom(name) do
+    schema_path(name) |> load!
+  end
+
+  @doc """
+  Loads a schema either by name or from the provided path. If there
+  is a problem parsing the schema, or it doesn't exist, an empty
+  default schema is returned.
+  """
+  @spec load(binary | atom) :: schema
+  def load(path) when is_binary(path) do
+    if path |> File.exists? do
+      case path |> Code.eval_file do
+        {[mappings: _, translations: _] = schema, _} ->
+          schema
+        _ ->
+          empty
+      end
+    else
+      empty
+    end
+  end
+  def load(name) when is_atom(name) do
+    schema_path(name) |> load
+  end
+
+  @doc """
+  Load the schemas for all dependencies of the current project,
+  and merge them into a single schema.
+  """
+  @spec coalesce() :: schema
+  def coalesce do
+    # Get schemas from all dependencies
+    proj_config = [build_path: Mix.Project.build_path, umbrella?: Mix.Project.umbrella?]
+    # Merge schemas for all deps
+    Mix.Dep.loaded([])
+    |> Enum.map(fn %Mix.Dep{app: app, opts: opts} ->
+         Mix.Project.in_project(app, opts[:path], proj_config, fn _ -> load(app) end)
+       end)
+    |> Enum.reduce(empty, &merge/2)
+  end
+
+
+  @doc """
+  Merges two schemas. Conflicts are resolved by taking the value from `y`.
+  """
+  def merge(x, y) do
+    mappings     = merge_mappings(Keyword.get(x, :mappings, []), Keyword.get(y, :mappings, []))
+    translations = merge_translations(Keyword.get(x, :translations, []), Keyword.get(y, :translations, []))
+    [mappings: mappings, translations: translations]
   end
 
   @doc """
   Saves a schema to the provided path
   """
-  @spec write([term], binary) :: :ok | {:error, term}
+  @spec write(schema, binary) :: :ok | {:error, term}
   def write(schema, path) do
     path |> File.write!(schema |> Conform.Schema.stringify)
   end
@@ -111,5 +177,26 @@ defmodule Conform.Schema do
   defp convert_to_datatype(:binary, v) when is_binary(v),     do: v
   defp convert_to_datatype(:binary, v) when not is_binary(v), do: nil
   defp convert_to_datatype(_, v), do: v
+
+  defp merge_mappings(new, old) do
+    # Iterate over each mapping in new, and add it if it doesn't
+    # exist in old, otherwise, do nothing
+    new |> Enum.reduce(old, fn {key, mapping}, acc ->
+      case acc |> Keyword.get(key) do
+        nil -> acc ++ [{key, mapping}]
+        _   -> acc
+      end
+    end)
+  end
+  defp merge_translations(new, old) do
+    # Iterate over each translation in new, and add it if it doesn't
+    # exist in old, otherwise, do nothing
+    new |> Enum.reduce(old, fn {key, translation}, acc ->
+      case acc |> Keyword.get(key) do
+        nil -> acc ++ [{key, translation}]
+        _   -> acc
+      end
+    end)
+  end
 
 end

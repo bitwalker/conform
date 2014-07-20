@@ -79,7 +79,7 @@ defmodule Mix.Tasks.Conform.Effective do
     end
     # Read .conf and .schema.exs
     conf   = Path.join([File.cwd!, "config", "#{app}.conf"])       |> Conform.Parse.file
-    schema = Path.join([File.cwd!, "config", "#{app}.schema.exs"]) |> Conform.Schema.load
+    schema = Path.join([File.cwd!, "config", "#{app}.schema.exs"]) |> Conform.Schema.load!
     # Translate .conf -> config
     translated = Conform.Translate.to_config(conf, schema)
     # Merge the .conf configuration over configuration in config.exs
