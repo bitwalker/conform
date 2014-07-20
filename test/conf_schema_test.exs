@@ -3,7 +3,7 @@ defmodule ConfSchemaTest do
 
   test "can load schema from file" do
     path   = Path.join(["test", "schemas", "small.schema.exs"])
-    schema = path |> Conform.Schema.load
+    schema = path |> Conform.Schema.load!
 
     assert schema == [mappings: [
                         "log.error.file": [

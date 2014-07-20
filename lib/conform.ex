@@ -72,7 +72,7 @@ defmodule Conform do
   defp process(%Options{} = options) do
     # Read .conf and .schema.exs
     conf   = options.conf |> Conform.Parse.file
-    schema = options.schema |> Conform.Schema.load
+    schema = options.schema |> Conform.Schema.load!
     # Translate .conf -> .config
     translated = Conform.Translate.to_config(conf, schema)
     # Read .config if exists

@@ -29,12 +29,15 @@ defmodule Mix.Tasks.Conform.New do
 
   defp do_run(app, config_path) do
     output_path = Path.join([File.cwd!, "config", "#{app}.schema.exs"])
-    # Load the configuration for this app
+    # Load the configuration for this app, and
+    # convert configuration to schema format
     config = Mix.Config.read!(config_path)
-    # Convert configuration to schema format
     schema = Conform.Schema.from_config(config)
-    # Output configuration to `output_path`
-    Conform.Schema.write(schema, output_path)
+    # Load configuration from dependencies, then
+    # output configuration to `output_path`
+    Conform.Schema.coalesce
+    |> Conform.Schema.merge(schema)
+    |> Conform.Schema.write(output_path)
     info "The generated schema for your project has been placed in config/#{app}.schema.exs"
   end
 

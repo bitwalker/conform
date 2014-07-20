@@ -28,7 +28,7 @@ defmodule Mix.Tasks.Conform.Configure do
     schema_path = Path.join([File.cwd!, "config", "#{app}.schema.exs"])
 
     # Convert configuration to schema format
-    schema = Conform.Schema.load(schema_path)
+    schema = Conform.Schema.load!(schema_path)
 
     # Conver to .conf
     conf = Conform.Translate.to_conf(schema)
