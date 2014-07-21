@@ -16,8 +16,8 @@ defmodule ConfTranslateTest do
     log.syslog = on
 
     # Restricts the error logging performed by the specified 
-    # sasl_error_logger to error reports, progress reports, or 
-    # both. Default is all.
+    # `sasl_error_logger` to error reports, progress reports, or 
+    # both. Default is all. Just testing "nested strings".
     sasl.log.level = all
 
     # Just some atom.
@@ -41,8 +41,8 @@ defmodule ConfTranslateTest do
     expect = [
       sasl:  [errlog_type: :all],
       myapp: [
-        another_val: {:on, []},
-        some_val: :foo
+        another_val: {:on, [data: %{log: :warn}]},
+        some_val: :bar
       ],
       log: [
         console_file: "/var/log/console.log",

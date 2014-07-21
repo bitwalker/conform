@@ -1,6 +1,5 @@
 [
   mappings: [
-
     "log.error.file": [
       to:       "log.error_file",
       datatype: :binary,
@@ -26,8 +25,8 @@
       default:  :all,
       doc: """
       Restricts the error logging performed by the specified 
-      sasl_error_logger to error reports, progress reports, or 
-      both. Default is all.
+      `sasl_error_logger` to error reports, progress reports, or 
+      both. Default is all. Just testing "nested strings".
       """
     ],
 
@@ -50,13 +49,26 @@
   ],
 
   translations: [
-    "myapp.another_val": fn val ->
-      case val do
-        :active         -> {:on, []}
-        :'active-debug' -> {:on, [debug: true]}
-        :passive        -> {:off, []}
-        _               -> {:on, []}
-      end
+    "myapp.another_val": fn
+      :foo -> :bar
+      val ->
+        case val do
+          :active ->
+            data = %{log: :warn}
+            more_data = %{data | :log => :warn}
+            {:on, [data: data]}
+          :'active-debug' -> {:on, [debug: true]}
+          :passive        -> {:off, []}
+          _               -> {:on, []}
+        end
+    end,
+    "myapp.some_val": fn
+      :foo -> :bar
+      val ->
+        case val do
+          :foo -> :bar
+          _    -> val
+        end
     end
   ]
 ]
