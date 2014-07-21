@@ -37,7 +37,7 @@ defmodule Mix.Tasks.Conform.New do
     # output configuration to `output_path`
     Conform.Schema.coalesce
     |> Conform.Schema.merge(schema)
-    |> Conform.Schema.write(output_path)
+    |> Conform.Schema.write_quoted(output_path)
     info "The generated schema for your project has been placed in config/#{app}.schema.exs"
   end
 
