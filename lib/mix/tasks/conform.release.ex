@@ -30,7 +30,7 @@ defmodule Mix.Tasks.Conform.Release do
   # A Mix.Dep struct, or reconstructed from Mix.Project.deps_config
   defp extract_paths(), do: extract_paths(nil)
   defp extract_paths(nil) do
-    conform_path = Mix.Project.deps_config |> Keyword.get(:deps_path) |> Path.join("conform")
+    conform_path = Path.expand(__ENV__.file) |> Path.dirname |> Path.join("../../../../conform")
     build_path   = Mix.Project.deps_config |> Keyword.get(:build_path) |> Path.join("lib") |> Path.join("conform")
     unless File.exists?(conform_path) do
       Utils.error "Failed to locate conform dependency!"
