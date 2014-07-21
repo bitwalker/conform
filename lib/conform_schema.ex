@@ -120,7 +120,7 @@ defmodule Conform.Schema do
     # Merge schemas for all deps
     Mix.Dep.loaded([])
     |> Enum.map(fn %Mix.Dep{app: app, opts: opts} ->
-         Mix.Project.in_project(app, opts[:path], proj_config, fn _ -> read(app) end)
+         Mix.Project.in_project(app, opts[:dest], proj_config, fn _ -> read(app) end)
        end)
     |> Enum.reduce(empty, &merge/2)
   end
