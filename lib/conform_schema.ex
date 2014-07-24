@@ -122,7 +122,15 @@ defmodule Conform.Schema do
     |> Enum.map(fn %Mix.Dep{app: app, opts: opts} ->
          Mix.Project.in_project(app, opts[:dest], proj_config, fn _ -> read(app) end)
        end)
-    |> Enum.reduce(empty, &merge/2)
+    |> coalesce
+  end
+
+  @doc """
+  Given a collection of schemas, merge them into a single schema
+  """
+  @spec coalesce([schema]) :: schema
+  def coalesce(schemas) do
+    schemas |> Enum.reduce(empty, &merge/2)
   end
 
   @doc """
