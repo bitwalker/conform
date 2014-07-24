@@ -222,11 +222,14 @@ defmodule Conform.Schema do
   defp extract_datatype(v) when is_boolean(v), do: :boolean
   defp extract_datatype(v) when is_integer(v), do: :integer
   defp extract_datatype(v) when is_float(v),   do: :float
-  # Default lists to binary, unless it's a charlist
-  defp extract_datatype(v) when is_list(v) do 
+  # First check if the list value type is a charlist, otherwise
+  # assume a list of whatever the first element value type is
+  defp extract_datatype([h|_]=v) when is_list(v) and h != [] do 
     case :io_lib.char_list(v) do
       true  -> :charlist
-      false -> :binary
+      false ->
+        list_type = extract_datatype(h)
+        [list: list_type]
     end
   end
   defp extract_datatype(_), do: :binary

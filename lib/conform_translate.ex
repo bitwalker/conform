@@ -23,7 +23,21 @@ defmodule Conform.Translate do
             |> String.split("\n", trim: true)
             |> Enum.map(&add_comment/1)
             |> Enum.join("\n")
-          result <> "#{comments}\n#{key} = #{Keyword.get(info, :default, :undefined)}\n\n"
+          # If the datatype of this mapping is an enum,
+          # write out the allowed values
+          result = case Keyword.get(info, :datatype) do
+            [enum: values] ->
+              allowed = "# Allowed values: #{Enum.join(values, ", ")}\n"
+              <<result::binary, comments::binary, ?\n, allowed::binary>>
+            _ ->
+              <<result::binary, comments::binary, ?\n>>
+          end
+          case Keyword.get(info, :default, nil) do
+            nil ->
+              <<result::binary, "# #{key} = \n\n">>
+            default ->
+              <<result::binary, "#{key} = #{default}\n\n">>
+          end
         end
       _ -> raise Conform.Schema.SchemaError
     end
@@ -142,12 +156,12 @@ defmodule Conform.Translate do
   defp settings_to_config(value), do: value
 
   # Parse the provided value as a value of the given datatype
-  defp parse_datatype(:atom, value, _setting),     do: value |> List.to_string |> String.to_atom
-  defp parse_datatype(:binary, value, _setting),   do: value |> List.to_string
-  defp parse_datatype(:charlist, value, _setting), do: value
+  defp parse_datatype(:atom, value, _setting),     do: "#{value}" |> String.to_atom
+  defp parse_datatype(:binary, value, _setting),   do: "#{value}"
+  defp parse_datatype(:charlist, value, _setting), do: '#{value}'
   defp parse_datatype(:boolean, value, setting) do
     try do
-      case value |> List.to_string |> String.to_existing_atom do
+      case "#{value}" |> String.to_existing_atom do
         true  -> true
         false -> false
         _     -> raise TranslateError, messagae: "Invalid boolean value for #{setting}."
@@ -158,30 +172,36 @@ defmodule Conform.Translate do
     end
   end
   defp parse_datatype(:integer, value, setting) do
-    case value |> List.to_string |> Integer.parse do
+    case "#{value}" |> Integer.parse do
       {num, _} -> num
       :error   -> raise TranslateError, message: "Invalid integer value for #{setting}."
     end
   end
   defp parse_datatype(:float, value, setting) do
-    case value |> List.to_string |> Float.parse do
+    case "#{value}" |> Float.parse do
       {num, _} -> num
       :error   -> raise TranslateError, message: "Invalid float value for #{setting}."
     end
   end
   defp parse_datatype(:ip, value, setting) do
-    case value |> List.to_string |> String.split(":", trim: true) do
+    case "#{value}" |> String.split(":", trim: true) do
       [ip, port] -> {ip, port}
       _          -> raise TranslateError, message: "Invalid IP format for #{setting}. Expected format: IP:PORT"
     end
   end
   defp parse_datatype([enum: valid_values], value, setting) do
-    parsed = value |> List.to_string |> String.to_atom
+    parsed = "#{value}" |> String.to_atom
     if Enum.any?(valid_values, fn v -> v == parsed end) do
       parsed
     else
       raise TranslateErorr, message: "Invalid enum value for #{setting}."
     end
+  end
+  defp parse_datatype([list: list_type], value, setting) do
+    "#{value}"
+    |> String.split(",")
+    |> Enum.map(&String.strip/1)
+    |> Enum.map(&(parse_datatype(list_type, &1, setting)))
   end
   defp parse_datatype(_datatype, _value, _setting), do: nil
 end
