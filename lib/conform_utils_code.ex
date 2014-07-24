@@ -71,7 +71,7 @@ defmodule Conform.Utils.Code do
     acc <> "\n" <> tabs(get_indent) <> keystr <> ": " <> format_function(fndef)
   end
   # Just a tuple
-  defp format_list_item({a, b} = tuple, acc) when not is_atom(a) do
+  defp format_list_item({a, _} = tuple, acc) when not is_atom(a) do
     acc <> "\n" <> tabs(get_indent) <> Macro.to_string(tuple)
   end
   # A key/value pair list item
