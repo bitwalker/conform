@@ -26,18 +26,16 @@ defmodule Mix.Tasks.Conform.Effective do
   use    Mix.Task
   import Conform.Utils
 
-  @doc """
-  Perform some actions within the context of a specific mix environment
-  """
-  defmacro with_env(env, do: body) do
-    quote do
-      old_env = Mix.env
+  # Perform some actions within the context of a specific mix environment
+  defp with_env(env, fun) do
+    old_env = Mix.env
+    try do
       # Change env
-      Mix.env(unquote(env))
-      result = unquote(body)
+      Mix.env(env)
+      fun.()
+    after
       # Change back
       Mix.env(old_env)
-      result
     end
   end
 
@@ -53,37 +51,31 @@ defmodule Mix.Tasks.Conform.Effective do
   end
 
   defp do_run(args) do
-    app = Mix.Project.config |> Keyword.get(:app)
+    app       = Mix.Project.config |> Keyword.get(:app)
+    conf_path = Path.join([File.cwd!, "config", "#{app}.conf"])
     # Load the base configuration from config.exs if it exists, and validate it
     # If config.exs doesn't exist, proceed if a .conf file exists, otherwise there
     # is no configuration to display
-    config = if File.exists?("config/config.exs") do
-      # Switch environments when reading the config
-      contents = with_env args.env do
-        Path.join([File.cwd!, "config", "config.exs"]) |> Mix.Config.read!
-      end
-      case Mix.Config.validate!(contents) do
-        true  -> contents
-        false ->
-          error "The contents of config/config.exs are invalid!"
-          exit(:normal)
-      end
-    else
-      # Proceed with an empty config if a .conf is provided
-      if File.exists?("config/#{app}.conf") do
-        []
-      else
-        info "Your project contains no configuration."
-        exit(:normal)
-      end
+    config = case File.exists?("config/config.exs") do
+      true ->
+        # Switch environments when reading the config
+        with_env args.env, fn ->
+          Path.join([File.cwd!, "config", "config.exs"]) |> Mix.Config.read!
+        end
+      false -> []
     end
-    # Read .conf and .schema.exs
-    conf   = Path.join([File.cwd!, "config", "#{app}.conf"])       |> Conform.Parse.file
-    schema = Path.join([File.cwd!, "config", "#{app}.schema.exs"]) |> Conform.Schema.load!
-    # Translate .conf -> config
-    translated = Conform.Translate.to_config(conf, schema)
-    # Merge the .conf configuration over configuration in config.exs
-    effective = Mix.Config.merge(config, translated)
+    # Read .conf
+    conf = case File.exists?(conf_path) do
+      true  -> conf_path |> Conform.Parse.file
+      false -> []
+    end
+    # Load merged schemas
+    app_schema = Conform.Schema.schema_path(app) |> Conform.Schema.load!
+    schema = Conform.Schema.coalesce |> Conform.Schema.merge(app_schema)
+    # Translate .conf -> config, using settings from config if one is
+    # not provided in the .conf. If no setting is present in either
+    # the config, or the .conf, the default from the schema is used.
+    effective = Conform.Translate.to_config(config, conf, schema)
     # Print the configuration as requested
     case args.options.type do
       :all -> Conform.Config.print(effective)
@@ -112,7 +104,7 @@ defmodule Mix.Tasks.Conform.Effective do
 
   defp parse_args(argv) do
     {args, _, _} = OptionParser.parse(argv)
-    env = args |> Keyword.get(:env, "dev") |> String.to_atom
+    env = args |> Keyword.get(:env, "#{Mix.env}") |> String.to_atom
     app = args |> Keyword.get(:app)
     key = args |> Keyword.get(:key)
     # Determine options

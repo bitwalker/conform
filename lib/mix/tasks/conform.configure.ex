@@ -1,12 +1,8 @@
 defmodule Mix.Tasks.Conform.Configure do
   @moduledoc """
-  Create a .conf file based on your projects configuration schema
-
-  This task will fail and alert you if you haven't generated your schema, or hand
-  written one yet, and expects it to be located in config/<yourapp>.schema.exs.
-
+  Create a .conf file based on your projects configuration schema.
   """
-  @shortdoc "Create a .conf file based on your projects configuration and conform schema."
+  @shortdoc "Create a .conf file from schema and project config."
 
   use    Mix.Task
   import Conform.Utils
@@ -24,17 +20,39 @@ defmodule Mix.Tasks.Conform.Configure do
 
   defp do_run(_) do
     app         = Mix.Project.config |> Keyword.get(:app)
+    schema_path = Conform.Schema.schema_path(app)
     output_path = Path.join([File.cwd!, "config", "#{app}.conf"])
-    schema_path = Path.join([File.cwd!, "config", "#{app}.schema.exs"])
 
-    # Convert configuration to schema format
-    schema = Conform.Schema.load!(schema_path)
+    # Check for conditions which prevent us from continuing
+    continue? = case File.exists?(schema_path) do
+      true  -> true
+      false ->
+        error "You must create a schema before you can generate a .conf!"
+        false
+    end
+    continue? = continue? and case File.exists?(output_path) do
+      true  -> confirm_overwrite?(output_path)
+      false -> true
+    end
 
-    # Conver to .conf
-    conf = Conform.Translate.to_conf(schema)
+    if continue? do
+      # Convert configuration to schema format
+      schema = Conform.Schema.load!(schema_path)
+      # Convert to .conf
+      conf = Conform.Translate.to_conf(schema)
+      # Output configuration to `output_path`
+      output_path |> File.write!(conf)
+      info "The .conf file for #{app} has been placed in #{Path.relative_to_cwd(output_path)}"
+    end
+  end
 
-    # Output configuration to `output_path`
-    output_path |> File.write!(conf)
-    info "The .conf file for #{app} has been generated. You can find it in config/#{app}.conf"
+  defp confirm_overwrite?(output_path) do
+    IO.puts IO.ANSI.yellow
+    confirmed? = Mix.Shell.IO.yes?("""
+      You already have a .conf at #{Path.relative_to_cwd(output_path)}.
+      Do you want to overwrite this config file with a new one?
+      """)
+    IO.puts IO.ANSI.reset
+    confirmed?
   end
 end

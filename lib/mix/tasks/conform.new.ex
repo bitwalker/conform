@@ -28,17 +28,39 @@ defmodule Mix.Tasks.Conform.New do
   end
 
   defp do_run(app, config_path) do
-    output_path = Path.join([File.cwd!, "config", "#{app}.schema.exs"])
-    # Load the configuration for this app, and
-    # convert configuration to schema format
-    config = Mix.Config.read!(config_path)
-    schema = Conform.Schema.from_config(config)
-    # Load configuration from dependencies, then
-    # output configuration to `output_path`
-    Conform.Schema.coalesce
-    |> Conform.Schema.merge(schema)
-    |> Conform.Schema.write_quoted(output_path)
-    info "The generated schema for your project has been placed in config/#{app}.schema.exs"
+    # Load the configuration for this app, and convert configuration to schema format
+    output_path = Conform.Schema.schema_path(app)
+    # Make sure we want to proceed if a schema already exists
+    continue? = case File.exists?(output_path) do
+      true  -> confirm_overwrite?(output_path)
+      false -> true
+    end
+    if continue? do
+      # Ensure output directory exists
+      output_path |> Path.dirname |> File.mkdir_p!
+      if File.exists?(config_path) do
+        # Load existing config and convert it to quoted schema terms
+        config = Mix.Config.read!(config_path)
+        schema = Conform.Schema.from_config(config)
+        # Write the generated schema to `output_path`
+        Conform.Schema.write_quoted(schema, output_path)
+        info "The schema for your project has been placed in #{Path.relative_to_cwd(output_path)}"
+      else
+        warn "Your project does not currently have any configuration!"
+        Conform.Schema.write_quoted(Conform.Schema.empty, output_path)
+        info "An empty schema has been placed in #{Path.relative_to_cwd(output_path)}"
+      end
+    end
+  end
+
+  defp confirm_overwrite?(output_path) do
+    IO.puts IO.ANSI.yellow
+    confirmed? = Mix.Shell.IO.yes?("""
+      You already have a schema at #{Path.relative_to_cwd(output_path)}.
+      Do you want to overwrite this schema with a new one?
+      """)
+    IO.puts IO.ANSI.reset
+    confirmed?
   end
 
 end
