@@ -178,7 +178,7 @@ defmodule Conform.Schema do
   end
 
   @doc """
-  Convert configuration in Elixir terms to schema format.
+  Convert standard configuration to quoted schema format
   """
   @spec from_config([] | [{atom, term}]) :: [{atom, term}]
   def from_config([]), do: empty
@@ -188,8 +188,10 @@ defmodule Conform.Schema do
   end
 
   def empty do
-    [ mappings:     [],
-      translations: [] ]
+    quote do
+      [ mappings:     [],
+        translations: [] ]
+    end
   end
 
   defp to_schema([]),                     do: []
@@ -209,8 +211,8 @@ defmodule Conform.Schema do
         datatype = extract_datatype(value)
         setting_name = "#{key}.#{setting}"
         ["#{setting_name}": [
-          doc: "Documentation for #{setting_name} goes here.",
-          to: setting_name,
+          doc:     "Provide documentation for #{setting_name} here.",
+          to:       setting_name,
           datatype: datatype,
           default:  convert_to_datatype(datatype, value)
         ]]
