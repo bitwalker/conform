@@ -32,47 +32,96 @@ defmodule Conform.Translate do
   @doc """
   Translate the provided .conf to it's .config representation using the provided schema.
   """
-  @spec to_config(term, term) :: term
-  def to_config(conf, schema) do
+  @spec to_config([{term, term}] | [], [{term, term}] | [], [{term, term}]) :: term
+  def to_config(config, conf, schema) do
+    # Convert the .conf into a map of key names to values
+    normalized_conf = 
+      for {setting, value} <- conf, into: %{} do
+        key = setting 
+              |> Enum.map(&List.to_string/1)
+              |> Enum.join(".")
+              |> String.to_atom
+        {key, value}
+    end
     case schema do
       [mappings: mappings, translations: translations] ->
         # Parse the .conf into a map of applications and their settings, applying translations where defined
-        settings = Enum.reduce conf, %{}, fn {setting, value}, result ->
-          # Convert the parsed setting key into the atom used in the schema
-          key = String.to_atom(setting |> Enum.map(&List.to_string/1) |> Enum.join("."))
-          # Look for a mapping with the provided name
-          case Keyword.get(mappings, key) do
-            # If no mapping is defined, just return the current config map,
-            nil  -> result
-            # Otherwise, parse the config for this mapping
-            info ->
-              # Get the translation function if one is defined
-              translation        = Keyword.get(translations, key)
-              # Break the setting key name into [app, and setting]
-              [app, app_setting] = Keyword.get(info, :to, key |> Atom.to_string) |> String.split(".", parts: 2)
-              # Get the default value for this mapping, if defined
-              default_value      = Keyword.get(info, :default, nil)
-              # Get the datatype for this mapping, falling back to binary if not defined
-              datatype           = Keyword.get(info, :datatype, :binary)
-              # Parse the provided value according to the defined datatype
-              parsed_value = case parse_datatype(datatype, value, setting) do
-                nil -> default_value
+        settings = Enum.reduce mappings, %{}, fn {key, mapping}, result ->
+          # Get the datatype for this mapping, falling back to binary if not defined
+          datatype = Keyword.get(mapping, :datatype, :binary)
+          # Get the default value for this mapping, if defined
+          default_value = Keyword.get(mapping, :default, nil)
+          parsed_value  = case get_in(normalized_conf, [key]) do
+            nil        -> default_value
+            conf_value ->
+              case parse_datatype(datatype, conf_value, key) do
+                nil -> conf_value
                 val -> val
               end
-              # Translate parsed value if translation exists
-              translated_value = case translation do
-                fun when is_function(fun) -> fun.(parsed_value)
-                _                         -> parsed_value
-              end
-              # Add the setting for the given app if one doesn't exist, or update if it does
-              current = Map.get(result, app, %{})
-              Map.put(result, app, Map.put(current, app_setting, translated_value))
           end
+          # Break the schema key name into it's parts, [app, [key1, key2, ...]]
+          [app_name|setting_path] = Keyword.get(mapping, :to, key |> Atom.to_string) |> String.split(".")
+          # Get the translation function is_function one is defined
+          translated_value = case get_in(translations, [key]) do
+            fun when is_function(fun) -> 
+              case :erlang.fun_info(fun, :arity) do
+                {:arity, 2} ->
+                  fun.(mapping, parsed_value)
+                {:arity, 3} ->
+                  # Get the current value if one exists, and provide it to the translation function
+                  current_value = get_in(result, [app_name|setting_path])
+                  fun.(mapping, parsed_value, current_value)
+                _ ->
+                  Conform.Utils.error("Invalid translation function arity for #{key}. Must be /2 or /3")
+                  exit(1)
+              end
+            _ ->
+              parsed_value
+          end
+
+          # Update this application setting, using empty maps as the default
+          # value when working down `setting_path`
+          update_in!(result, [app_name|setting_path], translated_value)
         end
+        # One last pass to catch any config settings not present in the schema, but
+        # which should still be present in the merged configuration
+        merged = config |> Enum.reduce(settings, fn {app, app_config}, acc ->
+          app_name = app |> Atom.to_string
+          # Ensure this app is present in the merged config
+          acc = case Map.has_key?(acc, app_name) do
+            true  -> acc
+            false -> put_in(acc, [app_name], %{})
+          end
+          # Add missing settings to merged config from config.exs
+          app_config |> Enum.reduce(acc, fn {key, value}, acc ->
+            key_name = key |> Atom.to_string
+            case get_in(acc, [app_name, key_name]) do
+              nil -> put_in(acc, [app_name, key_name], value)
+              _   -> acc
+            end
+          end)
+        end)
+
         # Convert config map to Erlang config terms
-        settings |> settings_to_config
+        merged |> settings_to_config
       _ ->
         raise Conform.Schema.SchemaError
+    end
+  end
+
+  defp update_in!(coll, key_path, value) do
+    update_in!(coll, key_path, value, [])
+  end
+  defp update_in!(coll, [], value, path) do
+    put_in(coll, path, value)
+  end
+  defp update_in!(coll, [key|rest], value, acc) do
+    path = acc ++ [key]
+    case get_in(coll, path) do
+      nil ->
+        put_in(coll, path, %{}) |> update_in!(rest, value, path)
+      _ ->
+        update_in!(coll, rest, value, path)
     end
   end
 
@@ -81,11 +130,16 @@ defmodule Conform.Translate do
 
   # Convert config map to Erlang config terms
   # End result: [{:app, [{:key1, val1}, {:key2, val2}, ...]}]
-  defp settings_to_config(settings) do
-    for {app, settings} <- settings, into: [] do
-      { app |> String.to_atom, (for {k, v} <- settings, into: [], do: {k |> String.to_atom, v}) }
-    end
+  defp settings_to_config(map) when is_map(map) do
+    map |> Enum.map(&settings_to_config/1)
   end
+  defp settings_to_config({key, value}) when is_map(value) do
+    {key |> String.to_atom, settings_to_config(value)}
+  end
+  defp settings_to_config({key, value}) do
+    {key |> String.to_atom, value}
+  end
+  defp settings_to_config(value), do: value
 
   # Parse the provided value as a value of the given datatype
   defp parse_datatype(:atom, value, _setting),     do: value |> List.to_string |> String.to_atom
