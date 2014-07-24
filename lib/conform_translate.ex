@@ -25,18 +25,19 @@ defmodule Conform.Translate do
             |> Enum.join("\n")
           # If the datatype of this mapping is an enum,
           # write out the allowed values
-          result = case Keyword.get(info, :datatype) do
+          datatype = Keyword.get(info, :datatype, :binary)
+          result = case datatype do
             [enum: values] ->
               allowed = "# Allowed values: #{Enum.join(values, ", ")}\n"
               <<result::binary, comments::binary, ?\n, allowed::binary>>
             _ ->
               <<result::binary, comments::binary, ?\n>>
           end
-          case Keyword.get(info, :default, nil) do
+          case Keyword.get(info, :default) do
             nil ->
               <<result::binary, "# #{key} = \n\n">>
             default ->
-              <<result::binary, "#{key} = #{default}\n\n">>
+              <<result::binary, "#{key} = #{write_datatype(datatype, default, key)}\n\n">>
           end
         end
       _ -> raise Conform.Schema.SchemaError
@@ -204,4 +205,21 @@ defmodule Conform.Translate do
     |> Enum.map(&(parse_datatype(list_type, &1, setting)))
   end
   defp parse_datatype(_datatype, _value, _setting), do: nil
+
+  # Write values of the given datatype to their string format (for the .conf)
+  defp write_datatype(:atom, value, _setting), do: value |> Atom.to_string
+  defp write_datatype(:ip, value, setting) do
+    case value do
+      {ip, port} -> "#{ip}:#{port}"
+      _ -> raise TranslateError, message: "Invalid IP address format for #{setting}. Expected format: {IP, PORT}"
+    end
+  end
+  defp write_datatype([enum: _], value, setting),  do: write_datatype(:atom, value, setting)
+  defp write_datatype([list: list_type], value, setting) when is_list(value) do
+    value |> Enum.map(&(write_datatype(list_type, &1, setting))) |> Enum.join(", ")
+  end
+  defp write_datatype([list: list_type], value, setting) do
+    write_datatype([list: list_type], [value], setting)
+  end
+  defp write_datatype(_datatype, value, _setting), do: "#{value}"
 end

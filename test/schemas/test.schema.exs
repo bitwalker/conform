@@ -18,7 +18,6 @@
       default:  :on,
       doc:      "This setting determines whether to use syslog or not. Valid values are :on and :off.",
     ],
-
     "sasl.log.level": [
       to:       "sasl.errlog_type",
       datatype: [enum: [:error, :progress, :all]],
@@ -29,7 +28,12 @@
       both. Default is all. Just testing "nested strings".
       """
     ],
-
+    "myapp.db.hosts": [
+      to: "myapp.db.hosts",
+      datatype: [list: :ip],
+      default: [{"127.0.0.1", "8001"}],
+      doc: "Remote db hosts"
+    ],
     "myapp.some_val": [
       datatype: :atom,
       default:  :foo,

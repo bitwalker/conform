@@ -70,6 +70,10 @@ defmodule Conform.Utils.Code do
     <<?:, keystr::binary>> = Macro.to_string(key)
     acc <> "\n" <> tabs(get_indent) <> keystr <> ": " <> format_function(fndef)
   end
+  # Just a tuple
+  defp format_list_item({a, b} = tuple, acc) when not is_atom(a) do
+    acc <> "\n" <> tabs(get_indent) <> Macro.to_string(tuple)
+  end
   # A key/value pair list item
   defp format_list_item({key, value}, acc) do
     stringified_value      = do_stringify(value)

@@ -22,6 +22,9 @@ defmodule ConfTranslateTest do
     # Allowed values: error, progress, all
     sasl.log.level = all
 
+    # Remote db hosts
+    myapp.db.hosts = 127.0.0.1:8001
+
     # Just some atom.
     myapp.some_val = foo
 
@@ -42,16 +45,17 @@ defmodule ConfTranslateTest do
     parsed = Conform.Parse.parse(conf)
     config = Conform.Translate.to_config([], parsed, schema)
     expect = [
-      sasl:  [errlog_type: :all],
-      myapp: [
-        another_val: {:on, [data: %{log: :warn}]},
-        some_val: :bar
-      ],
       log: [
         console_file: "/var/log/console.log",
         error_file:   "/var/log/error.log",
         syslog: :on
-      ]
+      ],
+      myapp: [
+        another_val: {:on, [data: %{log: :warn}]},
+        db: [hosts: [{"127.0.0.1", "8001"}]],
+        some_val: :bar
+      ],
+      sasl:  [errlog_type: :all]
     ]
     assert Keyword.equal?(expect, config)
   end
@@ -75,16 +79,17 @@ defmodule ConfTranslateTest do
     parsed = Conform.Parse.parse(conf)
     config = Conform.Translate.to_config(config, parsed, schema)
     expect = [
-      sasl:  [errlog_type: :progress],
-      myapp: [
-        another_val: {:on, [data: %{log: :warn}]},
-        some_val: :bar
-      ],
       log: [
         console_file: "/var/log/console.log",
         error_file:   "/var/log/error.log",
         syslog: :on
-      ]
+      ],
+      myapp: [
+        another_val: {:on, [data: %{log: :warn}]},
+        db: [hosts: [{"127.0.0.1", "8001"}]],
+        some_val: :bar
+      ],
+      sasl:  [errlog_type: :progress]
     ]
     assert Keyword.equal?(expect, config)
   end
