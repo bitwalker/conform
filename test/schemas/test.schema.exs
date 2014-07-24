@@ -50,8 +50,8 @@
 
   translations: [
     "myapp.another_val": fn
-      :foo -> :bar
-      val ->
+      _, :foo -> :bar
+      _mapping, val ->
         case val do
           :active ->
             data = %{log: :warn}
@@ -63,8 +63,8 @@
         end
     end,
     "myapp.some_val": fn
-      :foo -> :bar
-      val ->
+      _, :foo -> :bar
+      _mapping, val ->
         case val do
           :foo -> :bar
           _    -> val
