@@ -26,7 +26,7 @@ defmodule Conform.Config do
   def print(config) do
     config
     |> Inspect.Algebra.to_doc(%Inspect.Opts{pretty: true, limit: 1000})
-    |> Inspect.Algebra.pretty(80)
+    |> Inspect.Algebra.format(80)
     |> IO.puts
   end
 

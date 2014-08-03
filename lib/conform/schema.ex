@@ -171,7 +171,7 @@ defmodule Conform.Schema do
     if schema == Conform.Schema.empty do
       schema
         |> Inspect.Algebra.to_doc(%Inspect.Opts{pretty: true})
-        |> Inspect.Algebra.pretty(10)
+        |> Inspect.Algebra.format(10)
     else
       Conform.Utils.Code.stringify(schema)
     end
