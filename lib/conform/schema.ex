@@ -23,6 +23,7 @@ defmodule Conform.Schema do
 
   @doc """
   Load a schema either by name or from the provided path.
+  Used for schema evaluation only.
   """
   @spec load!(binary | atom) :: schema
   def load!(path) when is_binary(path) do
@@ -44,7 +45,7 @@ defmodule Conform.Schema do
   @doc """
   Loads a schema either by name or from the provided path. If there
   is a problem parsing the schema, or it doesn't exist, an empty
-  default schema is returned.
+  default schema is returned. Used for schema evaluation only.
   """
   @spec load(binary | atom) :: schema
   def load(path) when is_binary(path) do
@@ -64,8 +65,53 @@ defmodule Conform.Schema do
   end
 
   @doc """
+  Reads a schema file as quoted terms. This is used for manipulating
+  the schema (such as merging, etc.)
+  """
+  @spec read!(binary | atom) :: schema
+  def read!(path) when is_binary(path) do
+    if path |> File.exists? do
+      case path |> File.read! |> Code.string_to_quoted do
+        {:ok, [mappings: _, translations: _] = schema} ->
+          schema
+        _ ->
+          raise SchemaError
+      end
+    else
+      raise SchemaError, message: "Schema at #{path} doesn't exist!"
+    end
+  end
+  def read!(name) when is_atom(name) do
+    schema_path(name) |> read!
+  end
+
+  @doc """
+  Reads a schema file as quoted terms. If there
+  is a problem parsing the schema, or it doesn't exist, an empty
+  default schema is returned. This is used for manipulating
+  the schema (such as merging, etc.)
+  """
+  @spec read(binary | atom) :: schema
+  def read(path) when is_binary(path) do
+    if path |> File.exists? do
+      case path |> File.read! |> Code.string_to_quoted do
+        {:ok, [mappings: _, translations: _] = schema} ->
+          schema
+        _ ->
+          empty
+      end
+    else
+      empty
+    end
+  end
+  def read(name) when is_atom(name) do
+    schema_path(name) |> read
+  end
+
+  @doc """
   Load the schemas for all dependencies of the current project,
-  and merge them into a single schema.
+  and merge them into a single schema. Schemas are returned in
+  their quoted form.
   """
   @spec coalesce() :: schema
   def coalesce do
@@ -74,15 +120,24 @@ defmodule Conform.Schema do
     # Merge schemas for all deps
     Mix.Dep.loaded([])
     |> Enum.map(fn %Mix.Dep{app: app, opts: opts} ->
-         Mix.Project.in_project(app, opts[:path], proj_config, fn _ -> load(app) end)
+         Mix.Project.in_project(app, opts[:dest], proj_config, fn _ -> read(app) end)
        end)
-    |> Enum.reduce(empty, &merge/2)
+    |> coalesce
   end
 
+  @doc """
+  Given a collection of schemas, merge them into a single schema
+  """
+  @spec coalesce([schema]) :: schema
+  def coalesce(schemas) do
+    schemas |> Enum.reduce(empty, &merge/2)
+  end
 
   @doc """
   Merges two schemas. Conflicts are resolved by taking the value from `y`.
+  Expects the schema to be provided in it's quoted form.
   """
+  @spec merge(schema, schema) :: schema
   def merge(x, y) do
     mappings     = merge_mappings(Keyword.get(x, :mappings, []), Keyword.get(y, :mappings, []))
     translations = merge_translations(Keyword.get(x, :translations, []), Keyword.get(y, :translations, []))
@@ -98,7 +153,18 @@ defmodule Conform.Schema do
   end
 
   @doc """
-  Converts a schema to a prettified string
+  Converts a schema in it's quoted form and writes it to
+  the provided path
+  """
+  @spec write_quoted(schema, binary) :: :ok | {:error, term}
+  def write_quoted(schema, path) do
+    contents = stringify(schema)
+    path |> File.write!(contents)
+  end
+
+  @doc """
+  Converts a schema to a prettified string. Expects the schema
+  to be in it's quoted form.
   """
   @spec stringify([term]) :: binary
   def stringify(schema) do
@@ -107,21 +173,12 @@ defmodule Conform.Schema do
         |> Inspect.Algebra.to_doc(%Inspect.Opts{pretty: true})
         |> Inspect.Algebra.pretty(10)
     else
-      contents = schema
-        |> Inspect.Algebra.to_doc(%Inspect.Opts{pretty: true, limit: 1000})
-        |> Inspect.Algebra.pretty(10)
-        |> String.replace("[doc:", "[\n   doc:")
-        |> String.replace("   ", "      ")
-        |> String.replace("[\"", "[\n    \"")
-        |> String.replace("],", "\n    ],")
-        |> String.replace("[mappings", "[\n  mappings")
-        |> String.replace("translations: []]", " translations: []\n]")
-      Regex.replace(~r/\s+(\".*\"\: \[)/, contents, "\n    \\1")
+      Conform.Utils.Code.stringify(schema)
     end
   end
 
   @doc """
-  Convert configuration in Elixir terms to schema format.
+  Convert standard configuration to quoted schema format
   """
   @spec from_config([] | [{atom, term}]) :: [{atom, term}]
   def from_config([]), do: empty
@@ -131,8 +188,10 @@ defmodule Conform.Schema do
   end
 
   def empty do
-    [ mappings:     [],
-      translations: [] ]
+    quote do
+      [ mappings:     [],
+        translations: [] ]
+    end
   end
 
   defp to_schema([]),                     do: []
@@ -152,8 +211,8 @@ defmodule Conform.Schema do
         datatype = extract_datatype(value)
         setting_name = "#{key}.#{setting}"
         ["#{setting_name}": [
-          doc: "Documentation for #{setting_name} goes here.",
-          to: setting_name,
+          doc:     "Provide documentation for #{setting_name} here.",
+          to:       setting_name,
           datatype: datatype,
           default:  convert_to_datatype(datatype, value)
         ]]
@@ -165,11 +224,14 @@ defmodule Conform.Schema do
   defp extract_datatype(v) when is_boolean(v), do: :boolean
   defp extract_datatype(v) when is_integer(v), do: :integer
   defp extract_datatype(v) when is_float(v),   do: :float
-  # Default lists to binary, unless it's a charlist
-  defp extract_datatype(v) when is_list(v) do 
+  # First check if the list value type is a charlist, otherwise
+  # assume a list of whatever the first element value type is
+  defp extract_datatype([h|_]=v) when is_list(v) and h != [] do 
     case :io_lib.char_list(v) do
       true  -> :charlist
-      false -> :binary
+      false ->
+        list_type = extract_datatype(h)
+        [list: list_type]
     end
   end
   defp extract_datatype(_), do: :binary

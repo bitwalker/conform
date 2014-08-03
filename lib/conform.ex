@@ -73,15 +73,15 @@ defmodule Conform do
     # Read .conf and .schema.exs
     conf   = options.conf |> Conform.Parse.file
     schema = options.schema |> Conform.Schema.load!
-    # Translate .conf -> .config
-    translated = Conform.Translate.to_config(conf, schema)
     # Read .config if exists
     final = case options.config do
-      nil  -> translated
+      nil  ->
+        Conform.Translate.to_config([], conf, schema)
       path ->
         # Merge .config if exists and can be parsed
         case Conform.Config.read(path) do
           {:ok, [config]} ->
+            translated = Conform.Translate.to_config(config, conf, schema)
             Conform.Config.merge(config, translated)
           {:error, _} ->
             error """

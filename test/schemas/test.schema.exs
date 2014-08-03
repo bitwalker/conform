@@ -1,6 +1,5 @@
 [
   mappings: [
-
     "log.error.file": [
       to:       "log.error_file",
       datatype: :binary,
@@ -19,18 +18,22 @@
       default:  :on,
       doc:      "This setting determines whether to use syslog or not. Valid values are :on and :off.",
     ],
-
     "sasl.log.level": [
       to:       "sasl.errlog_type",
       datatype: [enum: [:error, :progress, :all]],
       default:  :all,
       doc: """
       Restricts the error logging performed by the specified 
-      sasl_error_logger to error reports, progress reports, or 
-      both. Default is all.
+      `sasl_error_logger` to error reports, progress reports, or 
+      both. Default is all. Just testing "nested strings".
       """
     ],
-
+    "myapp.db.hosts": [
+      to: "myapp.db.hosts",
+      datatype: [list: :ip],
+      default: [{"127.0.0.1", "8001"}],
+      doc: "Remote db hosts"
+    ],
     "myapp.some_val": [
       datatype: :atom,
       default:  :foo,
@@ -50,13 +53,26 @@
   ],
 
   translations: [
-    "myapp.another_val": fn val ->
-      case val do
-        :active         -> {:on, []}
-        :'active-debug' -> {:on, [debug: true]}
-        :passive        -> {:off, []}
-        _               -> {:on, []}
-      end
+    "myapp.another_val": fn
+      _, :foo -> :bar
+      _mapping, val ->
+        case val do
+          :active ->
+            data = %{log: :warn}
+            more_data = %{data | :log => :warn}
+            {:on, [data: data]}
+          :'active-debug' -> {:on, [debug: true]}
+          :passive        -> {:off, []}
+          _               -> {:on, []}
+        end
+    end,
+    "myapp.some_val": fn
+      _, :foo -> :bar
+      _mapping, val ->
+        case val do
+          :foo -> :bar
+          _    -> val
+        end
     end
   ]
 ]
