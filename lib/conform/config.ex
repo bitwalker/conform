@@ -21,13 +21,28 @@ defmodule Conform.Config do
   end
 
   @doc """
-  Print a config to the console
+  Print a config to the console with pretty formatting
   """
   def print(config) do
     config
+    |> pretty
+    |> print_raw
+  end
+
+  @doc """
+  Print a config to the console without applying any formatting
+  """
+  def print_raw(config) do
+    IO.puts(config)
+  end
+
+  @doc """
+  apply pretty formatting to a config
+  """
+  def pretty(config) do
+    config
     |> Inspect.Algebra.to_doc(%Inspect.Opts{pretty: true, limit: 1000})
     |> Inspect.Algebra.format(80)
-    |> IO.puts
   end
 
   @doc """
