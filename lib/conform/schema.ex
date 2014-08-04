@@ -19,7 +19,12 @@ defmodule Conform.Schema do
   """
   @spec schema_path() :: binary
   def schema_path(),    do: Mix.Project.config |> Keyword.get(:app) |> schema_path
-  def schema_path(app), do: Path.join([File.cwd!, "config", "#{app}.schema.exs"])
+  def schema_path(app), do: Path.join([File.cwd!, "config", schema_filename(app)])
+
+  @doc """
+  get the current app's schema filename
+  """
+  def schema_filename(app), do: "#{app}.schema.exs"
 
   @doc """
   Load a schema either by name or from the provided path.
@@ -226,7 +231,7 @@ defmodule Conform.Schema do
   defp extract_datatype(v) when is_float(v),   do: :float
   # First check if the list value type is a charlist, otherwise
   # assume a list of whatever the first element value type is
-  defp extract_datatype([h|_]=v) when is_list(v) and h != [] do 
+  defp extract_datatype([h|_]=v) when is_list(v) and h != [] do
     case :io_lib.char_list(v) do
       true  -> :charlist
       false ->
