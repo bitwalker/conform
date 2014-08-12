@@ -21,8 +21,7 @@ defmodule Conform.Mixfile do
     [applications: []]
   end
 
-  defp deps(:dev), do: [{:neotoma, github: "seancribbs/neotoma"}]
-  defp deps(_),    do: []
+  defp deps(_), do: [{:neotoma, github: "seancribbs/neotoma"}]
 
   defp description, do: "Easy release configuration for Elixir apps."
   defp package do
