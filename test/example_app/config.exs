@@ -7,4 +7,7 @@ config :test,
 config :sasl,
   errlog_type: :error
 
+config :logger,
+  format: "$time $metadata[$level] $levelpad$message\n"
+
 import_config "config.#{Mix.env}.exs"

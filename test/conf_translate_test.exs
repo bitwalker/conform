@@ -7,10 +7,10 @@ defmodule ConfTranslateTest do
     conf   = schema |> Conform.Translate.to_conf
     assert conf == """
     # The location of the error log. Should be a full path, i.e. /var/log/error.log.
-    log.error.file = /var/log/error.log
+    log.error.file = "/var/log/error.log"
 
     # The location of the console log. Should be a full path, i.e. /var/log/console.log.
-    log.console.file = /var/log/console.log
+    log.console.file = "/var/log/console.log"
 
     # This setting determines whether to use syslog or not. Valid values are :on and :off.
     # Allowed values: on, off
@@ -21,6 +21,9 @@ defmodule ConfTranslateTest do
     # both. Default is all. Just testing "nested strings".
     # Allowed values: error, progress, all
     sasl.log.level = all
+
+    # The format to use for Logger.
+    logger.format = "$time $metadata[$level] $levelpad$message\n"
 
     # Remote db hosts
     myapp.db.hosts = 127.0.0.1:8001
@@ -50,6 +53,7 @@ defmodule ConfTranslateTest do
         error_file:   "/var/log/error.log",
         syslog: :on
       ],
+      logger: [format: "$time $metadata[$level] $levelpad$message\n"],
       myapp: [
         another_val: {:on, [data: %{log: :warn}]},
         db: [hosts: [{"127.0.0.1", "8001"}]],
@@ -84,6 +88,7 @@ defmodule ConfTranslateTest do
         error_file:   "/var/log/error.log",
         syslog: :on
       ],
+      logger: [format: "$time $metadata[$level] $levelpad$message\n"],
       myapp: [
         another_val: {:on, [data: %{log: :warn}]},
         db: [hosts: [{"127.0.0.1", "8001"}]],

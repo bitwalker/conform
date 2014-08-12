@@ -7,7 +7,8 @@ defmodule IntegrationTest do
     schema = Path.join(["test", "example_app", "test.schema.exs"]) |> Conform.Schema.load!
 
     effective = Conform.Translate.to_config(config, conf, schema)
-    expected = [sasl: [errlog_type: :error],
+    expected = [logger: [format: "$time $metadata[$level] $levelpad$message\n"],
+                sasl: [errlog_type: :error],
                 test: [
                   another_val: :none,
                   debug_level: :info,

@@ -58,11 +58,6 @@
 -define(line, true).
 -define(FMT(F,A), lists:flatten(io_lib:format(F,A))).
 
--ifdef(TEST).
--include_lib("eunit/include/eunit.hrl").
--compile(export_all).
--endif.
-
 %% @doc Only let through lines that are not comments or whitespace.
 is_setting(ws) -> false;
 is_setting(comment) -> false;
@@ -75,27 +70,6 @@ unescape_dots([]) -> [];
 unescape_dots([C|Rest]) ->
     [C|unescape_dots(Rest)].
 
--ifdef(TEST).
-file_test() ->
-    Conf = conf_parse:file("../test/riak.conf"),
-    ?assertEqual([
-            {["ring_size"],"32"},
-            {["anti_entropy"],"debug"},
-            {["log","error","file"],"/var/log/error.log"},
-            {["log","console","file"],"/var/log/console.log"},
-            {["log","syslog"],"on"},
-            {["listener","http","internal"],"127.0.0.1:8098"},
-            {["listener","http","external"],"10.0.0.1:80"}
-        ], Conf),
-    ok.
-
-utf8_test() ->
-    Conf = conf_parse:parse("setting = thingŒ\n"),
-    ?assertEqual([{["setting"],
-            {error, "Error converting value on line #1 to latin1"}
-        }], Conf),
-    ok.
--endif.
 
 -spec file(file:name()) -> any().
 file(Filename) -> case file:read_file(Filename) of {ok,Bin} -> parse(Bin); Err -> Err end.
@@ -127,7 +101,7 @@ parse(Input) when is_binary(Input) ->
 
 -spec 'setting'(input(), index()) -> parse_result().
 'setting'(Input, Index) ->
-  p(Input, Index, 'setting', fun(I,D) -> (p_seq([p_zero_or_more(fun 'ws'/2), fun 'key'/2, p_zero_or_more(fun 'ws'/2), p_string(<<"=">>), p_zero_or_more(fun 'ws'/2), fun 'value'/2, p_zero_or_more(fun 'ws'/2), p_optional(fun 'comment'/2)]))(I,D) end, fun(Node, _Idx) ->
+  p(Input, Index, 'setting', fun(I,D) -> (p_seq([p_zero_or_more(fun 'ws'/2), fun 'key'/2, p_zero_or_more(fun 'ws'/2), p_string(<<"=">>), p_zero_or_more(fun 'ws'/2), p_choose([fun 'string_value'/2, fun 'value'/2]), p_zero_or_more(fun 'ws'/2), p_optional(fun 'comment'/2)]))(I,D) end, fun(Node, _Idx) ->
     [ _, Key, _, _Eq, _, Value, _, _ ] = Node,
     {Key, Value}
  end).
@@ -137,6 +111,19 @@ parse(Input) when is_binary(Input) ->
   p(Input, Index, 'key', fun(I,D) -> (p_seq([p_label('head', fun 'word'/2), p_label('tail', p_zero_or_more(p_seq([p_string(<<".">>), fun 'word'/2])))]))(I,D) end, fun(Node, _Idx) ->
     [{head, H}, {tail, T}] = Node,
     [unicode:characters_to_list(H)| [ unicode:characters_to_list(W) || [_, W] <- T]]
+ end).
+
+-spec 'string_value'(input(), index()) -> parse_result().
+'string_value'(Input, Index) ->
+  p(Input, Index, 'string_value', fun(I,D) -> (p_one_or_more(p_seq([p_not(p_choose([p_seq([p_zero_or_more(fun 'ws'/2), fun 'crlf'/2]), fun 'comment'/2])), p_string(<<"\"">>), p_zero_or_more(p_seq([p_not(p_string(<<"\"">>)), p_choose([p_string(<<"\\\\">>), p_string(<<"\\\"">>), p_anything()])])), p_optional(p_seq([p_optional(p_string(<<"\r">>)), p_string(<<"\n">>)])), p_string(<<"\"">>)])))(I,D) end, fun(Node, Idx) ->
+    case unicode:characters_to_binary(Node, utf8, latin1) of
+        {_Status, _Begining, _Rest} ->
+            {error, ?FMT("Error converting value on line #~p to latin1", [line(Idx)])};
+        Bin ->
+            Len      = erlang:byte_size(Bin),
+            Unquoted = erlang:binary_part(Bin, {1, Len - 2}),
+            binary_to_list(Unquoted)
+    end
  end).
 
 -spec 'value'(input(), index()) -> parse_result().

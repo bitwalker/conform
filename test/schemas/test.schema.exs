@@ -28,6 +28,14 @@
       both. Default is all. Just testing "nested strings".
       """
     ],
+    "logger.format": [
+      to: "logger.format",
+      datatype: :binary,
+      default: "$time $metadata[$level] $levelpad$message\n",
+      doc: """
+      The format to use for Logger.
+      """
+    ],
     "myapp.db.hosts": [
       to: "myapp.db.hosts",
       datatype: [list: :ip],
