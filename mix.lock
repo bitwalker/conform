@@ -1,1 +1,1 @@
-%{"neotoma": {:git, "git://github.com/seancribbs/neotoma.git", "760928ec8870da02eb11bccb501e2700925d06c6", []}}
+%{"neotoma": {:git, "git://github.com/seancribbs/neotoma.git", "6c4a6009d3f34da2ec42c4f3585dae0abbb49dfc", []}}

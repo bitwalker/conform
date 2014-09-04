@@ -75,7 +75,7 @@ unescape_dots([C|Rest]) ->
 file(Filename) -> case file:read_file(Filename) of {ok,Bin} -> parse(Bin); Err -> Err end.
 
 -spec parse(binary() | list()) -> any().
-parse(List) when is_list(List) -> parse(list_to_binary(List));
+parse(List) when is_list(List) -> parse(unicode:characters_to_binary(List));
 parse(Input) when is_binary(Input) ->
   _ = setup_memo(),
   Result = case 'config'(Input,{{line,1},{column,1}}) of
