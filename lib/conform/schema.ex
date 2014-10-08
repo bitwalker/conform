@@ -83,34 +83,11 @@ defmodule Conform.Schema do
           raise SchemaError
       end
     else
-      raise SchemaError, message: "Schema at #{path} doesn't exist!"
+      empty
     end
   end
   def read!(name) when is_atom(name) do
     schema_path(name) |> read!
-  end
-
-  @doc """
-  Reads a schema file as quoted terms. If there
-  is a problem parsing the schema, or it doesn't exist, an empty
-  default schema is returned. This is used for manipulating
-  the schema (such as merging, etc.)
-  """
-  @spec read(binary | atom) :: schema
-  def read(path) when is_binary(path) do
-    if path |> File.exists? do
-      case path |> File.read! |> Code.string_to_quoted do
-        {:ok, [mappings: _, translations: _] = schema} ->
-          schema
-        _ ->
-          empty
-      end
-    else
-      empty
-    end
-  end
-  def read(name) when is_atom(name) do
-    schema_path(name) |> read
   end
 
   @doc """
@@ -125,7 +102,7 @@ defmodule Conform.Schema do
     # Merge schemas for all deps
     Mix.Dep.loaded([])
     |> Enum.map(fn %Mix.Dep{app: app, opts: opts} ->
-         Mix.Project.in_project(app, opts[:dest], proj_config, fn _ -> read(app) end)
+         Mix.Project.in_project(app, opts[:dest], proj_config, fn _ -> read!(app) end)
        end)
     |> coalesce
   end
