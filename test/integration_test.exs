@@ -17,8 +17,8 @@ defmodule IntegrationTest do
   end
 
   test "test merging and stringifying master/dep schemas" do
-    master = Path.join(["test", "schemas", "merge_master.schema.exs"]) |> Conform.Schema.read
-    dep    = Path.join(["test", "schemas", "merge_dep.schema.exs"]) |> Conform.Schema.read
+    master = Path.join(["test", "schemas", "merge_master.schema.exs"]) |> Conform.Schema.read!
+    dep    = Path.join(["test", "schemas", "merge_dep.schema.exs"]) |> Conform.Schema.read!
     saved  = Path.join(["test", "schemas", "merged_schema.exs"])
 
     # Get schemas from all dependencies
@@ -35,7 +35,7 @@ defmodule IntegrationTest do
     schema = Path.join(["test", "schemas", "merge_master.schema.exs"]) |> Conform.Schema.load
 
     effective = Conform.Translate.to_config([], conf, schema)
-    expected  = [lager: [ 
+    expected  = [lager: [
                   handlers: [
                     lager_console_backend: :info,
                     lager_file_backend: [file: "/var/log/error.log", level: :error],
