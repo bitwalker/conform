@@ -3,13 +3,13 @@
 [![Build
 Status](https://travis-ci.org/bitwalker/conform.svg?branch=master)](https://travis-ci.org/bitwalker/conform)
 
-The definition of conform is "Adapt or conform oneself to new or different conditions". As this library is used to adapt your application to it's deployed environment, I think it's rather fitting. It's also a play on the word configuration, and the fact that Conform uses an init-style configuration, maintained in a `.conf` file.
+The definition of conform is "Adapt or conform oneself to new or different conditions". As this library is used to adapt your application to its deployed environment, I think it's rather fitting. It's also a play on the word configuration, and the fact that Conform uses an init-style configuration, maintained in a `.conf` file.
 
-Conform is a library for Elixir applications. It's original intended use is in exrm as a means of providing a simplified configuration file for deployed releases, but is flexible enough to work for any use case where you want init-style configuration translated to Elixir/Erlang terms. It is inspired directly by `basho/cuttlefish`, and in fact uses it's .conf parser. Beyond that, you can look at conform as a reduced (but growing!) implementation of cuttlefish in Elixir.
+Conform is a library for Elixir applications. Its original intended use is in exrm as means of providing a simplified configuration file for deployed releases, but is flexible enough to work for any use case where you want init-style configuration translated to Elixir/Erlang terms. It is inspired directly by `basho/cuttlefish`, and in fact uses its .conf parser. Beyond that, you can look at conform as a reduced (but growing!) implementation of cuttlefish in Elixir.
 
 ## Usage
 
-You can use Conform either via it's API, which is simple and easy to pick up, or by building the escript and running that via the command line.
+You can use Conform either via its API, which is simple and easy to pick up, or by building the escript and running that via the command line.
 
 Running the escript's help, you'll see how it's used:
 
@@ -68,7 +68,7 @@ myapp.some_val = foo
 myapp.another_val = all
 ```
 
-Short and sweet, and most importantly, easy for sysadmins and users to understand and modify. The real power of conform though is when you did into the schema file. It allows you to define documentation, mappings between friendly setting names and specific application settings in the underlying sys.config, define validation of values via datatype specifications, provide default values, and transform simplified values from the .conf into something more meaningful to your application using translation functions. 
+Short and sweet, and most importantly, easy for sysadmins and users to understand and modify. The real power of conform though is when you dig into the schema file. It allows you to define documentation, mappings between friendly setting names and specific application settings in the underlying sys.config, define validation of values via datatype specifications, provide default values, and transform simplified values from the .conf into something more meaningful to your application using translation functions. 
 
 A schema is basically a single data structure. A keyword list, containing two top-level properties, `mappings`, and `translations`. Before we dive in, here's the schema for the .conf file above:
 
@@ -159,14 +159,14 @@ A schema is basically a single data structure. A keyword list, containing two to
 ]
 ```
 
-This looks pretty daunting, but I've provided mix tasks to help you generate the schema from your existing `config.exs` file. Once you've gotten the schema tightened up though, you'll start to understand why it's worth a little extra effort up front. So schemas consist of two types of things, mappings, and translations. Mappings are defined by four properties:
+This looks pretty daunting, but I've provided mix tasks to help you generate the schema from your existing `config.exs` file. Once you've gotten the schema tightened up though, you'll start to understand why it's worth a little extra effort up front. So schemas consist of two types of things: mappings and translations. Mappings are defined by four properties:
 
 - `:doc`, documentation on what this setting is, and how to use it
 - `:to`, if you want friendly names for not so friendly app settings, `:to` tells conform what setting this mapping applies to in the generated `.config`
 - `:datatype`, the datatype of the value, currently supports binary, charlist, atom, integer, float, ip (a tuple of strings `{ip, port}`), enum, and lists of one of those types. I currently am planning on supporting user-defined types, but that work has not yet been completed.
 - `:default`, optional, the value to use if one is not supplied for this setting. Should be the same form as the datatype for the setting. So for example, if you have a setting, `myapp.foo`, with a datatype of `[enum: [:info, :warn, :error]]`, then your default value should be one of those three atoms.
 
-After a mapping is parsed according to it's schema definition, if a translation function with an arity of 2 or 3 exists for that mapping, the function is called with the following parameters: `mapping` and `value`, and optionally `accumulator` if you provide a translation function with an arity of 3. The `mapping` parameter is basically what you would expect: the mapping for the setting associated with the currently executing translation. The `value` is of course the value you are translating. `accumulator` is a bit different, but works the way it sounds. If you provide multiple mappings with the same `to` path, then translations for those mappings will receive an accumulated value for that config setting. In the example above, you can see I defined multiple mappings that all had different names, but pointed to the same underlying field. Each translation handles both the case where the accumulator is nil, or already contains a list of values. Let's take a look at what the final output of the combined .conf and schema files will look like.
+After a mapping is parsed according to its schema definition, if a translation function with an arity of 2 or 3 exists for that mapping, the function is called with the following parameters: `mapping` and `value`, and optionally `accumulator`, if you provide a translation function with an arity of 3. The `mapping` parameter is basically what you would expect -- the mapping for the setting associated with the currently executing translation. The `value` is of course the value you are translating. `accumulator` is a bit different, but works the way it sounds. If you provide multiple mappings with the same `to` path, then translations for those mappings will receive an accumulated value for that config setting. In the example above, you can see I defined multiple mappings that all had different names, but pointed to the same underlying field. Each translation handles both the case where the accumulator is nil, or already contains a list of values. Let's take a look at what the final output of the combined .conf and schema files will look like.
 
 ```erlang
 [{lager, [
