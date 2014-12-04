@@ -57,6 +57,11 @@
       * passive: it's going to be passive
       * active-debug: it's going to be active, with verbose debugging information
       """
+    ],
+    "myapp.Elixir.Some.Module.val": [
+      datatype: :atom,
+      default:  :foo,
+      doc:      "Atom module name"
     ]
   ],
 

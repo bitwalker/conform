@@ -96,7 +96,7 @@ defmodule Conform.Translate do
 
           # Update this application setting, using empty maps as the default
           # value when working down `setting_path`
-          update_in!(result, [app_name|setting_path], translated_value)
+          update_in!(result, [app_name|setting_path |> repath], translated_value)
         end
         # One last pass to catch any config settings not present in the schema, but
         # which should still be present in the merged configuration
@@ -123,6 +123,35 @@ defmodule Conform.Translate do
         raise Conform.Schema.SchemaError
     end
   end
+
+  defp repath(setting_path) do
+    uc_set = Enum.map(?A..?Z, fn i -> List.to_string([i]) end) |> Enum.into(HashSet.new)
+    new_path = repath(setting_path, uc_set, [], []) 
+    |> List.flatten
+    |> Enum.reverse
+    new_path
+  end
+
+  defp repath([], _uc_set, [], total_acc) do
+    total_acc
+  end
+  defp repath([], _uc_set, this_acc, total_acc) do
+    [rev_join_key(this_acc)|total_acc]
+  end
+  defp repath([next|tail], uc_set, this_acc, total_acc) do
+    case Set.member?(uc_set, String.at(next, 0)) do
+      true ->
+        repath(tail, uc_set, [next|this_acc], total_acc)
+      false ->
+        repath(tail, uc_set, [], [next|[rev_join_key(this_acc)|total_acc]])
+    end
+  end
+
+  defp rev_join_key([]), do: []
+  defp rev_join_key(key_frags) when is_list(key_frags) do
+    key_frags |> Enum.reverse |> Enum.join(".")
+  end
+
 
   defp update_in!(coll, key_path, value) do
     update_in!(coll, key_path, value, [])
