@@ -9,7 +9,7 @@ defmodule Conform.Mixfile do
 
   def project do
     [app: :conform,
-     version: "0.11.0",
+     version: "0.12.0",
      elixir: ">= 1.0.0",
      escript: [main_module: Conform],
      compilers: compilers(@do_peg_compile?),
