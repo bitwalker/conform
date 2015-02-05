@@ -38,6 +38,9 @@ defmodule ConfTranslateTest do
     # Allowed values: active, passive, active-debug
     myapp.another_val = active
 
+    # Atom module name
+    myapp.Elixir.Some.Module.val = foo
+
     """
   end
 
@@ -55,6 +58,7 @@ defmodule ConfTranslateTest do
       ],
       logger: [format: "$time $metadata[$level] $levelpad$message\n"],
       myapp: [
+        {Some.Module, [val: :foo]},
         another_val: {:on, [data: %{log: :warn}]},
         db: [hosts: [{"127.0.0.1", "8001"}]],
         some_val: :bar
@@ -90,9 +94,10 @@ defmodule ConfTranslateTest do
       ],
       logger: [format: "$time $metadata[$level] $levelpad$message\n"],
       myapp: [
+        {Some.Module, [val: :foo]},
         another_val: {:on, [data: %{log: :warn}]},
         db: [hosts: [{"127.0.0.1", "8001"}]],
-        some_val: :bar
+        some_val: :bar,
       ],
       sasl:  [errlog_type: :progress]
     ]
