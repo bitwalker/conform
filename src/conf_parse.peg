@@ -42,7 +42,7 @@ setting <- ws* key ws* "=" ws* (string_value / value) ws* comment? %{
 %};
 
 %% A key is a series of dot-separated identifiers.
-key <- head:word tail:("." word)* %{
+key <- head:(word / string_value) tail:("." (word / string_value))* %{
     [{head, H}, {tail, T}] = Node,
     [unicode:characters_to_list(H)| [ unicode:characters_to_list(W) || [_, W] <- T]]
 %};

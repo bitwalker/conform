@@ -108,7 +108,7 @@ parse(Input) when is_binary(Input) ->
 
 -spec 'key'(input(), index()) -> parse_result().
 'key'(Input, Index) ->
-  p(Input, Index, 'key', fun(I,D) -> (p_seq([p_label('head', fun 'word'/2), p_label('tail', p_zero_or_more(p_seq([p_string(<<".">>), fun 'word'/2])))]))(I,D) end, fun(Node, _Idx) ->
+  p(Input, Index, 'key', fun(I,D) -> (p_seq([p_label('head', p_choose([fun 'word'/2, fun 'string_value'/2])), p_label('tail', p_zero_or_more(p_seq([p_string(<<".">>), p_choose([fun 'word'/2, fun 'string_value'/2])])))]))(I,D) end, fun(Node, _Idx) ->
     [{head, H}, {tail, T}] = Node,
     [unicode:characters_to_list(H)| [ unicode:characters_to_list(W) || [_, W] <- T]]
  end).

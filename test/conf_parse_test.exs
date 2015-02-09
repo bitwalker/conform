@@ -9,7 +9,9 @@ defmodule ConfParseTest do
       {['log','console','file'],'/var/log/console.log'},
       {['log','syslog'],'on'},
       {['sasl','errlog_type'],'error'},
-      {['myapp','some_val'],'foo'}
+      {['myapp','some_val'],'foo'},
+      {['some', 'string value'], 'stringkeys'},
+      {['starting.string', 'key'], 'stringkeys'}
     ] == conf
   end
 
