@@ -67,11 +67,7 @@ defmodule Mix.Tasks.Conform.Release do
   defp build_escript() do
     escript_path = Path.join(File.cwd!, "conform")
     # Run escript task
-    case Mix.Shell.cmd("mix escript.build", fn _ -> nil end) do
-      0 -> escript_path
-      _ ->
-        Utils.error "Failed to build conform escript!"
-        exit(1)
-    end
+    :ok = Mix.Task.run("escript.build")
+    escript_path
   end
 end
