@@ -67,6 +67,7 @@ defmodule Mix.Tasks.Conform.Release do
   defp build_escript() do
     escript_path = Path.join(File.cwd!, "conform")
     # Run escript task
+    Mix.Task.load_all
     :ok = Mix.Task.run("escript.build")
     escript_path
   end
