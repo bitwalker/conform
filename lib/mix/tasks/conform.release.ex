@@ -76,8 +76,8 @@ defmodule Mix.Tasks.Conform.Release do
             Utils.error "Failed to build conform escript!"
             exit(1)
         end
-      _ ->
-        :ok = Mix.Task.run("escript.build")
+      task ->
+        :ok = task.run []
     end
     escript_path
   end
