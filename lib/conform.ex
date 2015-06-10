@@ -23,6 +23,10 @@ defmodule Conform do
   config prior to output. Use this to merge a default sys.config with the
   configuration generated from the source .conf file.
   """
+  def parse_args([]) do
+    :help
+  end
+
   def parse_args(argv) do
     parse = OptionParser.parse(argv, switches: [help: :boolean,      conf: :string,
                                                 schema: :string,     filename: :string,

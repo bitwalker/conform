@@ -47,4 +47,19 @@ defmodule IntegrationTest do
                   ]]]]]
     assert Keyword.equal?(expected, effective)
   end
+
+  test "test for the complex data types" do
+    conf   = Path.join(["test", "confs", "complex_example.conf"]) |> Conform.Parse.file
+    schema = Path.join(["test", "schemas", "complex_schema.exs"]) |> Conform.Schema.load
+    effective = Conform.Translate.to_config([], conf, schema)
+    expected = [my_app:
+                [complex_another_list:
+                 [first: %{age: 20, username: "test_username1"},
+                  second: %{age: 40, username: "test_username2"}],
+                 complex_list: [
+                   buzz: %{age: 25, type: :person}, fido: %{age: 30, type: :dog}],
+                 some_val: :foo, some_val2: 2.5]]
+
+    assert effective == expected
+  end
 end
