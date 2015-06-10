@@ -66,6 +66,12 @@ myapp.some_val = foo
 # * none: use nothing
 # Allowed values: all, some, none
 myapp.another_val = all
+
+# complex data types with wildcard support
+complex_list.first.username = "username1"
+complex_list.first.age = 20
+complex_list.second.username = "username2"
+complex_list.second.age = 40
 ```
 
 Short and sweet, and most importantly, easy for sysadmins and users to understand and modify. The real power of conform though is when you dig into the schema file. It allows you to define documentation, mappings between friendly setting names and specific application settings in the underlying sys.config, define validation of values via datatype specifications, provide default values, and transform simplified values from the .conf into something more meaningful to your application using translation functions. 
@@ -111,16 +117,20 @@ A schema is basically a single data structure. A keyword list, containing two to
       datatype: :atom,
       default:  :foo
     ],
-    "myapp.another_val": [
-      doc: """
-      Determine the type of thing.
-      * all:  use everything
-      * some: use a few things
-      * none: use nothing
-      """,
-      to:       "myapp.another_val",
-      datatype: [enum: [:all, :some, :none]],
-      default:  :all,
+    "my_app.complex_list.*": [
+      to: "my_app.complex_list",
+      datatype: [:complex],
+      default: []
+    ],
+    "my_app.complex_list.*.type": [
+      to: "my_app.complex_list",
+      datatype: :atom,
+      default:  :undefined
+    ],
+    "my_app.complex_list.*.age": [
+      to: "my_app.complex_list",
+      datatype: :integer,
+      default: 30
     ]
   ],
 
@@ -153,9 +163,14 @@ A schema is basically a single data structure. A keyword list, containing two to
         [lager_file_backend: [file: path, level: :info]]
       _, path, acc ->
         acc ++ [lager_file_backend: [file: path, level: :info]]
+    end,
+    "my_app.complex_list.*": fn _, {key, value_map}, acc ->
+    [[name: key,
+      username: value_map[:username],
+      age:  value_map[:age]
+     ] | acc]
     end
   ]
-
 ]
 ```
 
@@ -178,7 +193,9 @@ After a mapping is parsed according to its schema definition, if a translation f
  {myapp, [
   {another_val, {on, [{debug, true}, {tracing, true}]}},
   {some_val, foo},
-  {db, [{hosts, [{"127.0.0.1", "8001"}]}]}
+  {db, [{hosts, [{"127.0.0.1", "8001"}]}]},
+  [complex_list: [first: %{age: 20, username: "username1"},
+                  second: %{age: 40, username: "username2"}]]
 ]}].
 ```
 
