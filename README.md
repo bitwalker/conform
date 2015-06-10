@@ -68,10 +68,10 @@ myapp.some_val = foo
 myapp.another_val = all
 
 # complex data types with wildcard support
-complex_another_list.first.username = "username1"
-complex_another_list.first.age = 20
-complex_another_list.second.username = "username2"
-complex_another_list.second.age = 40
+complex_list.first.username = "username1"
+complex_list.first.age = 20
+complex_list.second.username = "username2"
+complex_list.second.age = 40
 ```
 
 Short and sweet, and most importantly, easy for sysadmins and users to understand and modify. The real power of conform though is when you dig into the schema file. It allows you to define documentation, mappings between friendly setting names and specific application settings in the underlying sys.config, define validation of values via datatype specifications, provide default values, and transform simplified values from the .conf into something more meaningful to your application using translation functions. 
