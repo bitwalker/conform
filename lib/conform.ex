@@ -96,7 +96,15 @@ defmodule Conform do
         end
     end
     # Write final .config to options.write_to
-    options.write_to |> Conform.Config.write(final)
+    case (options.write_to |> Conform.Config.write(final)) do
+      :ok ->
+        :ok
+      {:error, reason} ->
+        error """
+        Unable to write configuration file #{options.write_to} with reason: #{reason}
+        """
+        exit(:normal)
+    end
     # Print success message
     success "Generated #{options.write_to |> Path.basename} in #{options.write_to |> Path.dirname}"
   end

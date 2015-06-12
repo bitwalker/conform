@@ -17,7 +17,10 @@ defmodule Conform.Config do
   """
   @spec write(binary, term) :: :ok | {:error, term}
   def write(path, config) do
-    '#{path}' |> :file.write_file(:io_lib.fwrite('~p.\n', [config]))
+    case File.write!(path, :io_lib.fwrite('~p.\n', [config])) do
+      :ok -> :ok
+      {:error, reason} -> {:error, :file.format_error(reason)}
+    end
   end
 
   @doc """
