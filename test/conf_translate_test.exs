@@ -7,17 +7,17 @@ defmodule ConfTranslateTest do
     conf   = schema |> Conform.Translate.to_conf
     assert conf == """
     # The location of the error log. Should be a full path, i.e. /var/log/error.log.
-    log.error.file = "/var/log/error.log"
+    log.error.file = /var/log/error.log
 
     # The location of the console log. Should be a full path, i.e. /var/log/console.log.
-    log.console.file = "/var/log/console.log"
+    log.console.file = /var/log/console.log
 
     # This setting determines whether to use syslog or not. Valid values are :on and :off.
     # Allowed values: on, off
     log.syslog = on
 
-    # Restricts the error logging performed by the specified 
-    # `sasl_error_logger` to error reports, progress reports, or 
+    # Restricts the error logging performed by the specified
+    # `sasl_error_logger` to error reports, progress reports, or
     # both. Default is all. Just testing "nested strings".
     # Allowed values: error, progress, all
     sasl.log.level = all
@@ -73,8 +73,8 @@ defmodule ConfTranslateTest do
     path   = Path.join(["test", "schemas", "test.schema.exs"])
     schema = path |> Conform.Schema.load
     conf = """
-    # Restricts the error logging performed by the specified 
-    # `sasl_error_logger` to error reports, progress reports, or 
+    # Restricts the error logging performed by the specified
+    # `sasl_error_logger` to error reports, progress reports, or
     # both. Default is all. Just testing "nested strings".
     sasl.log.level = progress
 

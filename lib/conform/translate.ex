@@ -50,9 +50,9 @@ defmodule Conform.Translate do
   @spec to_config([{term, term}] | [], [{term, term}] | [], [{term, term}]) :: term
   def to_config(config, conf, schema) do
     # Convert the .conf into a map of key names to values
-    normalized_conf = 
+    normalized_conf =
       for {setting, value} <- conf, into: %{} do
-        key = setting 
+        key = setting
               |> Enum.map(&List.to_string/1)
               |> Enum.join(".")
               |> String.to_atom
@@ -278,7 +278,7 @@ defmodule Conform.Translate do
 
   defp repath(setting_path) do
     uc_set = Enum.map(?A..?Z, fn i -> List.to_string([i]) end) |> Enum.into(HashSet.new)
-    new_path = repath(setting_path, uc_set, [], []) 
+    new_path = repath(setting_path, uc_set, [], [])
     |> List.flatten
     |> Enum.reverse
     new_path
@@ -340,6 +340,7 @@ defmodule Conform.Translate do
   # Parse the provided value as a value of the given datatype
   defp parse_datatype(:atom, value, _setting),     do: "#{value}" |> String.to_atom
   defp parse_datatype(:binary, value, _setting),   do: "#{value}"
+  defp parse_datatype(:string, value, _setting),   do: "#{value}"
   defp parse_datatype(:charlist, value, _setting), do: '#{value}'
   defp parse_datatype(:boolean, value, setting) do
     try do

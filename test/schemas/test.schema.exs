@@ -2,13 +2,13 @@
   mappings: [
     "log.error.file": [
       to:       "log.error_file",
-      datatype: :binary,
+      datatype: :string,
       default:  "/var/log/error.log",
       doc:      "The location of the error log. Should be a full path, i.e. /var/log/error.log."
     ],
     "log.console.file": [
       to:       "log.console_file",
-      datatype: :binary,
+      datatype: :string,
       default:  "/var/log/console.log",
       doc:      "The location of the console log. Should be a full path, i.e. /var/log/console.log."
     ],
@@ -23,8 +23,8 @@
       datatype: [enum: [:error, :progress, :all]],
       default:  :all,
       doc: """
-      Restricts the error logging performed by the specified 
-      `sasl_error_logger` to error reports, progress reports, or 
+      Restricts the error logging performed by the specified
+      `sasl_error_logger` to error reports, progress reports, or
       both. Default is all. Just testing "nested strings".
       """
     ],
