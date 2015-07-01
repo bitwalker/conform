@@ -199,7 +199,30 @@ After a mapping is parsed according to its schema definition, if a translation f
 ]}].
 ```
 
-As you can see, if your sysadmins had to work with the above, versus the .conf, it would be quite prone to mistakes, and much harder to understand, particularly with the lack of comments or documentation.
+As you can see, if your sysadmins had to work with the above, versus the .conf, it would be quite prone to mistakes, and much harder to understand, particularly with the lack of comments or documentation. If you need to import any applications from the `your_app/deps`, you can update your `you_app.schema.exs` with the `import`:
+
+```elixir
+[
+	import: [
+		:my_app_dep1,
+		:my_app_dep2
+	],
+
+	mappings: [
+		...
+		...
+		...
+	],
+
+	translations: [
+		...
+		...
+		...
+	]
+]
+```
+
+The `my_app_dep1` and `my_app_dep2` will be loaded from the `your_app/deps` and you can use any public API from these applications in the translations.
 
 I've provided mix tasks to handle generating your initial .conf and .schema.exs files, which includes the default options, and the documentation. The end result is an easy to maintain configuration file for your users, and ideally, a powerful tool for managing your own configuration as well.
 

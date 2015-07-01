@@ -56,6 +56,39 @@ defmodule Conform do
     System.halt(0)
   end
 
+  defp load_deps(schema, conf) do
+    imports = Dict.fetch(schema, :import)
+    {schema, imports} = case imports do
+                          :error -> {schema, []}
+                          {:ok, imports} -> {Dict.delete(schema, :import), imports}
+                        end
+
+    app_name = Path.basename(conf, ".conf")
+    app_dir = String.split(Path.dirname(conf), "/")
+                |> Enum.take_while(fn(path) -> path != app_name end)
+                |> :lists.append([app_name])
+                |> Enum.join("/")
+    deps_dir = app_dir <> "/deps/"
+    {:ok, deps} = :file.list_dir(deps_dir)
+
+    # load deps
+    Enum.each(deps, fn(dir) ->
+      if ((dir |> :erlang.list_to_atom) in imports) do
+        dep_path = deps_dir <> ((dir |> to_string) <> "/ebin")
+        app_path = Path.basename(dep_path) |> String.to_atom
+        Code.append_path(dep_path)
+      end
+    end)
+
+    # load itself app
+    Mix.start
+    env = Mix.env
+    Code.append_path(app_dir <> "/_build/" <> to_string(env) <> "/lib/" <> app_name <> "/ebin")
+
+    # return schema without [import: ...]
+    schema
+  end
+
   # Convert switches to fully validated Options struct
   defp process(switches) when is_list(switches) do
     conf   = Keyword.get(switches, :conf, nil)
@@ -76,7 +109,7 @@ defmodule Conform do
   defp process(%Options{} = options) do
     # Read .conf and .schema.exs
     conf   = options.conf |> Conform.Parse.file
-    schema = options.schema |> Conform.Schema.load!
+    schema = options.schema |> Conform.Schema.load! |> load_deps(Path.absname(options.conf))
     # Read .config if exists
     final = case options.config do
       nil  ->
