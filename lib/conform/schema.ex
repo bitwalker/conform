@@ -36,6 +36,8 @@ defmodule Conform.Schema do
       case path |> Code.eval_file do
         {[mappings: _, translations: _] = schema, _} ->
           schema
+        {[import: _, mappings: _, translations: _] = schema, _} ->
+          schema
         _ ->
           raise SchemaError
       end
@@ -58,6 +60,8 @@ defmodule Conform.Schema do
       case path |> Code.eval_file do
         {[mappings: _, translations: _] = schema, _} ->
           schema
+        {[import: _, mappings: _, translations: _] = schema, _} ->
+          schema
         _ ->
           empty
       end
@@ -78,6 +82,8 @@ defmodule Conform.Schema do
     if path |> File.exists? do
       case path |> File.read! |> Code.string_to_quoted do
         {:ok, [mappings: _, translations: _] = schema} ->
+          schema
+        {:ok, [import: _, mappings: _, translations: _] = schema} ->
           schema
         _ ->
           raise SchemaError
