@@ -78,8 +78,10 @@ defmodule Conform.Translate do
                 val -> val
               end
           end
+
           # Break the schema key name into it's parts, [app, [key1, key2, ...]]
           [app_name|setting_path] = Keyword.get(mapping, :to, key |> Atom.to_string) |> String.split(".")
+
           # Get the translation function is_function one is defined
           translated_value = case get_in(translations, [key]) do
                                fun when is_function(fun) ->
@@ -96,7 +98,6 @@ defmodule Conform.Translate do
                                _ ->
                                  parsed_value
                              end
-
           # Update this application setting, using empty maps as the default
           # value when working down `setting_path` and complex types
           res = Enum.map(complex, fn({app, complex_map}) ->
@@ -146,7 +147,7 @@ defmodule Conform.Translate do
     end
   end
 
-    defp get_complex(mappings, translations, normalized_conf) do
+  defp get_complex(mappings, translations, normalized_conf) do
     complex = get_complex([], mappings)
     mappings = delete_complex([], mappings) |> :lists.reverse
     complex_names = get_complex_names([], complex, normalized_conf)
@@ -406,4 +407,5 @@ defmodule Conform.Translate do
     <<?", "#{value}", ?">>
   end
   defp write_datatype(_datatype, value, _setting), do: "#{value}"
+
 end
