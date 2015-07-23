@@ -72,11 +72,10 @@ defmodule ConfTranslateTest do
     ]
 
     :ok = Mix.Task.run("escript.build", [path: script])
-    res = :os.cmd("#{script} --schema #{schema_path} --conf #{conf_path} --output-dir #{sys_config_path}" |> to_char_list)
-    {res, [sysconfig]} = :file.consult(sys_config_path <> "/sys.config")
+    _ = :os.cmd("#{script} --schema #{schema_path} --conf #{conf_path} --output-dir #{sys_config_path}" |> to_char_list)
+    {:ok, [sysconfig]} = :file.consult(sys_config_path <> "/sys.config")
 
     assert Path.basename(zip_path) == "test.schema.ez"
-    assert res == :ok
     assert sysconfig == expected
 
     File.rm(sys_config_path <> "/sys.config")
