@@ -36,6 +36,8 @@ defmodule Conform.Schema do
       case path |> Code.eval_file do
         {[mappings: _, translations: _] = schema, _} ->
           schema
+        {[import: _, mappings: _, translations: _] = schema, _} ->
+          schema
         _ ->
           raise SchemaError
       end
@@ -58,6 +60,8 @@ defmodule Conform.Schema do
       case path |> Code.eval_file do
         {[mappings: _, translations: _] = schema, _} ->
           schema
+        {[import: _, mappings: _, translations: _] = schema, _} ->
+          schema
         _ ->
           empty
       end
@@ -78,6 +82,8 @@ defmodule Conform.Schema do
     if path |> File.exists? do
       case path |> File.read! |> Code.string_to_quoted do
         {:ok, [mappings: _, translations: _] = schema} ->
+          schema
+        {:ok, [import: _, mappings: _, translations: _] = schema} ->
           schema
         _ ->
           raise SchemaError
@@ -123,7 +129,8 @@ defmodule Conform.Schema do
   def merge(x, y) do
     mappings     = merge_mappings(Keyword.get(x, :mappings, []), Keyword.get(y, :mappings, []))
     translations = merge_translations(Keyword.get(x, :translations, []), Keyword.get(y, :translations, []))
-    [mappings: mappings, translations: translations]
+    imports = merge_imports(Keyword.get(x, :import, []), Keyword.get(y, :import, []))
+    [import: imports, mappings: mappings, translations: translations]
   end
 
   @doc """
@@ -242,5 +249,12 @@ defmodule Conform.Schema do
       end
     end)
   end
-
+  defp merge_imports(new, old) do
+    new |> Enum.reduce(old, fn key, acc ->
+      case acc |> Enum.member(key) do
+        false -> acc ++ [key]
+        _ -> acc
+      end
+    end)
+  end
 end

@@ -76,7 +76,10 @@ defmodule Conform do
   defp process(%Options{} = options) do
     # Read .conf and .schema.exs
     conf   = options.conf |> Conform.Parse.file
-    schema = options.schema |> Conform.Schema.load!
+    schema = options.schema |> Conform.Schema.load! |> Dict.delete(:import)
+    arch_name = List.first(String.split(Path.basename(options.schema), ".")) <> ".schema.ez"
+    # load all imports from archive
+    load_imports(Path.dirname(options.schema) <> "/" <> arch_name)
     # Read .config if exists
     final = case options.config do
       nil  ->
@@ -116,4 +119,26 @@ defmodule Conform do
     IO.ANSI.green <> message <> IO.ANSI.reset |> IO.puts
   end
 
+  defp load_imports(arch_path) do
+    case File.exists?(arch_path) do
+      true ->
+        {:ok, [_ | zip_files]} = :zip.list_dir(arch_path |> to_char_list)
+        apps = Enum.map(zip_files, fn({:zip_file, path, _, _, _, _}) ->
+          path = to_string(path)
+          case :filename.extension(path) == ".app" do
+            true ->
+              [deps_app_path, _] = String.split(path, "ebin")
+              Path.basename(deps_app_path)
+            false ->
+              []
+          end
+        end) |> :lists.flatten
+
+        Enum.each(apps, fn(app) ->
+          Code.append_path(to_string(arch_path) <> "/" <> app <> "/ebin")
+        end)
+      false ->
+        :ok
+    end
+  end
 end

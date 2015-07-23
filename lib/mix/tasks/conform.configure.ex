@@ -37,7 +37,7 @@ defmodule Mix.Tasks.Conform.Configure do
 
     if continue? do
       # Convert configuration to schema format
-      schema = Conform.Schema.load!(schema_path)
+      schema = Conform.Schema.load!(schema_path) |> Dict.delete(:import)
       # Convert to .conf
       conf = Conform.Translate.to_conf(schema)
       # Output configuration to `output_path`
