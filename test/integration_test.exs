@@ -20,7 +20,7 @@ defmodule IntegrationTest do
     assert Keyword.equal?(expected, effective)
   end
 
-  test "test merging and stringifying master/dep schemas" do
+  test "merging and stringifying master/dep schemas" do
     master = Path.join(["test", "schemas", "merge_master.schema.exs"]) |> Conform.Schema.read!
     dep    = Path.join(["test", "schemas", "merge_dep.schema.exs"]) |> Conform.Schema.read!
     saved  = Path.join(["test", "schemas", "merged_schema.exs"])
@@ -52,7 +52,7 @@ defmodule IntegrationTest do
     assert Keyword.equal?(expected, effective)
   end
 
-  test "test for the complex data types" do
+  test "for the complex data types" do
     conf   = Path.join(["test", "confs", "complex_example.conf"]) |> Conform.Parse.file
     schema = Path.join(["test", "schemas", "complex_schema.exs"]) |> Conform.Schema.load
     effective = Conform.Translate.to_config([], conf, schema)

@@ -214,9 +214,9 @@ defmodule Conform.Utils.Code do
     |> Enum.join("\n" <> tabs(get_indent))
   end
   defp to_heredoc(<<>>, :closed, acc) do
-    acc 
-    |> String.split("\n", trim: true) 
-    |> Enum.map(&String.strip/1) 
+    acc
+    |> String.split("\n", trim: true)
+    |> Enum.map(&String.strip/1)
     |> Enum.join("\n" <> tabs(get_indent))
   end
 

@@ -192,7 +192,7 @@ defmodule ConformCodeTest do
   test "can stringify a module" do
     data = """
     defmodule Test do
-      def foo(x), do: x 
+      def foo(x), do: x
       def foo(x, y) do
         case {x, y} do
           {:foo, :bar} -> :foobar
@@ -200,7 +200,7 @@ defmodule ConformCodeTest do
           {^x, ^y} ->
             result = "\#{x}\#{y}" |> String.to_atom
             result
-        end 
+        end
       end
     end
     """
@@ -233,7 +233,7 @@ defmodule ConformCodeTest do
   #   |> Path.expand
   #   |> Conform.Schema.read!
   #   |> Conform.Utils.Code.stringify
-    
+
   #   assert true
   # end
 end
