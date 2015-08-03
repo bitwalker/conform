@@ -1,18 +1,22 @@
 defmodule IntegrationTest do
   use ExUnit.Case, async: true
 
-  test "test effective configuration" do
+  test "effective configuration" do
     config = Path.join(["test", "example_app", "config.exs"]) |> Mix.Config.read!
     conf   = Path.join(["test", "example_app", "test.conf"]) |> Conform.Parse.file
     schema = Path.join(["test", "example_app", "test.schema.exs"]) |> Conform.Schema.load!
 
+    proxy = [{:default_route, {{127,0,0,1}, 1813, "secret"}},
+             {:options, [{:type, :realm}, {:strip, true}, {:separator, '@'}]},
+             {:routes, [{'test', {{127,0,0,1}, 1815, "secret"}}]}]
     effective = Conform.Translate.to_config(config, conf, schema)
     expected = [logger: [format: "$time $metadata[$level] $levelpad$message\n"],
                 sasl: [errlog_type: :error],
                 test: [
                   another_val: :none,
                   debug_level: :info,
-                  env: :test]]
+                  env: :test,
+                  servers: [proxy: [{ {:eradius_proxy, 'proxy', proxy}, [{'127.0.0.1', "secret"}] }]]]]
     assert Keyword.equal?(expected, effective)
   end
 
