@@ -11,7 +11,8 @@ defmodule ConfParseTest do
       {['sasl','errlog_type'],'error'},
       {['myapp','some_val'],'foo'},
       {['some', 'string value'], 'stringkeys'},
-      {['starting.string', 'key'], 'stringkeys'}
+      {['starting.string', 'key'], 'stringkeys'},
+      {['myapp', 'Custom', 'Enum'], 'prod'}
     ] == conf
   end
 
