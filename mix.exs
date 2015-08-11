@@ -26,7 +26,7 @@ defmodule Conform.Mixfile do
   defp compilers(_),    do: nil
 
   defp deps(true), do: [
-    {:neotoma, github: "seancribbs/neotoma"},
+    {:neotoma, "~> 1.7.3"},
     {:ex_doc, "~> 0.7", only: [:docs, :dev]},
     {:earmark, "~> 0.1", only: [:docs, :dev]}
   ]
