@@ -62,7 +62,13 @@
       datatype: :atom,
       default:  :foo,
       doc:      "Atom module name"
-    ]
+    ],
+    "myapp.Custom.Enum": [
+      doc: "Provide documentation for myapp.Custom.Enum here.",
+      to: "myapp.Custom.Enum",
+      datatype: [{Conform.Type.Enum, [:dev, :prod, :test]}],
+      default: :dev
+     ]
   ],
 
   translations: [

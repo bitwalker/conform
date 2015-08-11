@@ -41,6 +41,10 @@ defmodule ConfTranslateTest do
     # Atom module name
     myapp.Elixir.Some.Module.val = foo
 
+    # Provide documentation for myapp.Custom.Enum here.
+    # Allowed values: dev, prod, test
+    myapp.Custom.Enum = dev
+
     """
   end
 
@@ -66,7 +70,7 @@ defmodule ConfTranslateTest do
        [
            {:another_val,2},
            {:debug_level,:info},
-           {:env, 'dev'}
+           {:env, :prod}
        ]
       }
     ]
@@ -74,10 +78,8 @@ defmodule ConfTranslateTest do
     :ok = Mix.Task.run("escript.build", [path: script])
     _ = :os.cmd("#{script} --schema #{schema_path} --conf #{conf_path} --output-dir #{sys_config_path}" |> to_char_list)
     {:ok, [sysconfig]} = :file.consult(sys_config_path <> "/sys.config")
-
     assert Path.basename(zip_path) == "test.schema.ez"
     assert sysconfig == expected
-
     File.rm(sys_config_path <> "/sys.config")
     File.rm(script)
   end
@@ -96,6 +98,7 @@ defmodule ConfTranslateTest do
       ],
       logger: [format: "$time $metadata[$level] $levelpad$message\n"],
       myapp: [
+        {:'Custom.Enum', :dev},
         {Some.Module, [val: :foo]},
         another_val: {:on, [data: %{log: :warn}]},
         db: [hosts: [{"127.0.0.1", "8001"}]],
@@ -132,6 +135,7 @@ defmodule ConfTranslateTest do
       ],
       logger: [format: "$time $metadata[$level] $levelpad$message\n"],
       myapp: [
+        {:'Custom.Enum', :dev},
         {Some.Module, [val: :foo]},
         another_val: {:on, [data: %{log: :warn}]},
         db: [hosts: [{"127.0.0.1", "8001"}]],

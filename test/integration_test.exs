@@ -66,4 +66,24 @@ defmodule IntegrationTest do
 
     assert effective == expected
   end
+
+  test "test for the custom data type" do
+    conf   = Path.join(["test", "confs", "test.conf"]) |> Conform.Parse.file
+    schema = Path.join(["test", "schemas", "test.schema.exs"]) |> Conform.Schema.load
+    effective = Conform.Translate.to_config([], conf, schema)
+    expected =  [log:
+                 [console_file: "/var/log/console.log",
+                  error_file: "/var/log/error.log",
+                  syslog: :on], logger:
+                 [format: "$time $metadata[$level] $levelpad$message\n"],
+                 myapp: [
+                   {:'Custom.Enum', :prod},
+                   {Some.Module, [val: :foo]},
+                   {:another_val, {:on, [data: %{log: :warn}]}},
+                   {:db, [hosts: [{"127.0.0.1", "8001"}]]}, {:some_val, :bar}],
+                 sasl: [errlog_type: :all]]
+
+    assert effective == expected
+  end
+
 end

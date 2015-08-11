@@ -238,6 +238,76 @@ mix conform.new --conf myapp/config/myapp.conf --schema myapp/config/myapp.schem
 
 I've also provided mix tasks to handle generating your initial .conf and .schema.exs files, which includes the default options, and the documentation. The end result is an easy to maintain configuration file for your users, and ideally, a powerful tool for managing your own configuration as well.
 
+## Custom data types
+
+`Conform` provides ability to use custom data types in your schemas:
+
+```elixir
+[
+    mappings: [
+      "myapp.val1": [
+        doc: "Provide some documentation for val1",
+        to: "myapp.val1",
+        datatype: MyModule1,
+        default: 100
+      ],
+      "myapp.val2": [
+        doc: "Provide some documentation for val2",
+        to: "myapp.val2",
+        datatype: [{MyModule2, [:dev, :prod, :test]}],
+        default: :dev
+      ]
+    ],
+
+    translations: [
+       ...
+       ...
+       ...
+    ]
+]
+```
+
+Where `MyModule1` and `MyModule2` must be module which provides callbacks for the mapping documentation and transition:
+
+```elixir
+defmodule MyModule1 do
+  def to_doc(values) do
+    "Any string"
+  end
+
+  def transition(mapping, val) do
+    # execute transition for your custom type
+  end
+
+  def transition(mapping, val, _acc) do
+    # execute transition for your custom type
+  end
+end
+```
+
+If a custom module provides `to_doc/1` callback, the documentation from schema will be appended with the result of this callback, in other way only the default documentation will be used. If a mapping does not have transition in the schema, transition from a custom module will be used. Also you can provide additional `parse_datatype/2` callback to the your custom data type. By default `conform` reads values as strings from the configuration file. The `parse_datatype/2` callback allows to cast data to the needed type:
+
+```elixir
+defmodule MyModule1 do
+  def to_doc(values) do
+    "Any string"
+  end
+
+  def transition(mapping, val) do
+    # execute transition for your custom type
+  end
+
+  def transition(mapping, val, _acc) do
+    # execute transition for your custom type
+  end
+
+  def parse_datatype(_key, val) when is_list(val) do
+    List.to_atom(val)
+  end
+
+end
+```
+
 ## Rationale 
 
 Conform is a library for Elixir applications, specifically in the release phase. Elixir already offers a convenient configuration mechanism via `config/config.exs`, but it has downsides:

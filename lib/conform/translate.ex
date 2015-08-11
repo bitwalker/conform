@@ -4,6 +4,8 @@ defmodule Conform.Translate do
   from .schema.exs -> .conf
   """
 
+  @list_types [:list, :enum, :complex]
+
   @doc """
   This exception reflects an issue with the translation process
   """
@@ -19,21 +21,30 @@ defmodule Conform.Translate do
     case schema do
       [mappings: mappings, translations: _] ->
         Enum.reduce mappings, "", fn {key, info}, result ->
-          comments = Keyword.get(info, :doc, "")
-            |> String.split("\n", trim: true)
-            |> Enum.map(&add_comment/1)
-            |> Enum.join("\n")
           # If the datatype of this mapping is an enum,
           # write out the allowed values
           datatype = Keyword.get(info, :datatype, :binary)
+          doc = Keyword.get(info, :doc, "")
+          {custom?, mod, args} = custom_type?(datatype)
+          to_doc_loaded? = Code.ensure_loaded(mod) == {:module, mod}
+          comments = if custom? and function_exported?(mod, :to_doc, 1) and to_doc_loaded? do
+                       if (doc == "") do
+                         to_comment(mod.to_doc(args))
+                       else
+                         to_comment("#{doc}\n#{mod.to_doc(args)}")
+                       end
+                     else
+                       to_comment(Keyword.get(info, :doc, ""))
+                     end
           result = case datatype do
-            [enum: values] ->
-              allowed = "# Allowed values: #{Enum.join(values, ", ")}\n"
-              <<result::binary, comments::binary, ?\n, allowed::binary>>
-            _ ->
-              <<result::binary, comments::binary, ?\n>>
-          end
-          case Keyword.get(info, :default) do
+                     [enum: values] ->
+                       allowed = "# Allowed values: #{Enum.join(values, ", ")}\n"
+                       <<result::binary, comments::binary, ?\n, allowed::binary>>
+                       _ ->
+                       <<result::binary, comments::binary, ?\n>>
+                   end
+          default = Keyword.get(info, :default)
+          case default do
             nil ->
               <<result::binary, "# #{key} = \n\n">>
             default ->
@@ -74,7 +85,8 @@ defmodule Conform.Translate do
             nil        -> default_value
             conf_value ->
               case parse_datatype(datatype, conf_value, key) do
-                nil -> conf_value
+                nil ->
+                  conf_value
                 val -> val
               end
           end
@@ -96,8 +108,13 @@ defmodule Conform.Translate do
                                      exit(1)
                                  end
                                _ ->
-                                 parsed_value
+                                 # if we have no the translation for the current key
+                                 # in the schema, maybe we are dealing with a custom
+                                 # type.
+                                 {mod, _args} = get_custom_mod(datatype)
+                                 translate_custom_type(mod, mapping, key, normalized_conf, parsed_value, result, app_name, setting_path)
                              end
+
           # Update this application setting, using empty maps as the default
           # value when working down `setting_path` and complex types
           res = Enum.map(complex, fn({app, complex_map}) ->
@@ -408,4 +425,57 @@ defmodule Conform.Translate do
   end
   defp write_datatype(_datatype, value, _setting), do: "#{value}"
 
+  defp to_comment(str) do
+    String.split(str, "\n", trim: true) |> Enum.map(&add_comment/1) |> Enum.join("\n")
+  end
+
+  defp custom_parsed_value(mod, key, normalized_conf, default_value) do
+    case function_exported?(mod, :parse_datatype, 2) do
+      true ->
+        case get_in(normalized_conf, [key]) do
+          nil ->
+            default_value
+          val ->
+            mod.parse_datatype(key, val)
+        end
+      false ->
+        default_value
+    end
+  end
+
+  defp translate_custom_type(mod, mapping, key, normalized_conf, parsed_value, result, app_name, setting_path) do
+    mod_loaded? = Code.ensure_loaded(mod) == {:module, mod}
+    transition2_exported? = function_exported?(mod, :transition, 2)
+    transition3_exported? = function_exported?(mod, :transition, 3)
+    case {mod_loaded?, transition2_exported?, transition3_exported?}  do
+      {true, true, _} ->
+        mod.transition(mapping, custom_parsed_value(mod, key, normalized_conf, parsed_value))
+      {true, _, true} ->
+        mod.transition(mapping, custom_parsed_value(mod, key, normalized_conf, parsed_value),
+                       get_in(result, [app_name|setting_path]))
+      _ ->
+        # if a module/function not loaded/exported it means that
+        # it is internal type, but without transition. Just return
+        # default parsed value.
+        parsed_value
+    end
+  end
+
+  defp custom_type?(datatype) do
+    if is_list(datatype) do
+      [{type, args}] = datatype
+      {not (Enum.member?(@list_types, type)), type, args}
+    else
+      {false, nil, nil}
+    end
+  end
+
+  defp get_custom_mod(datatype) do
+    case datatype do
+      [{mod, args}] ->
+        {mod, args}
+      mod ->
+        {mod, nil}
+    end
+  end
 end

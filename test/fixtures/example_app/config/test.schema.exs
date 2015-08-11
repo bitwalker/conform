@@ -6,7 +6,7 @@
     "test.env": [
       doc: "Provide documentation for test.env here.",
       to: "test.env",
-      datatype: [{:'Conform.Type.Enum', [:dev, :prod]}],
+      datatype: [{Conform.Type.Enum, [:dev, :prod]}],
       default: :dev
     ],
     "test.some_val": [
