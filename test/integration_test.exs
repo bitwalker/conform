@@ -1,5 +1,5 @@
 defmodule IntegrationTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   test "effective configuration" do
     config = Path.join(["test", "example_app", "config.exs"]) |> Mix.Config.read!
