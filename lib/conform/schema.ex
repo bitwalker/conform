@@ -3,7 +3,7 @@ defmodule Conform.Schema do
   This module is responsible for the handling of schema files.
   """
 
-  @type schema      :: [mappings: [mapping], translations: [translation]]
+  @type schema      :: [import: [atom], mappings: [mapping], translations: [translation]]
   @type mapping     :: {atom, [doc: binary, to: binary, datatype: atom, default: term]}
   @type translation :: {atom, fun}
 
@@ -178,7 +178,8 @@ defmodule Conform.Schema do
 
   def empty do
     quote do
-      [ mappings:     [],
+      [ import:       [],
+        mappings:     [],
         translations: [] ]
     end
   end

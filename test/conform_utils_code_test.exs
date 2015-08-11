@@ -1,5 +1,5 @@
 defmodule ConformCodeTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "can stringify function and case blocks" do
     source = """

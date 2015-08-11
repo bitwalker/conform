@@ -1,5 +1,5 @@
 defmodule ConfSchemaTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "can load schema from file" do
     path   = Path.join(["test", "schemas", "small.schema.exs"])

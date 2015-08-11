@@ -74,7 +74,7 @@ complex_list.second.username = "username2"
 complex_list.second.age = 40
 ```
 
-Short and sweet, and most importantly, easy for sysadmins and users to understand and modify. The real power of conform though is when you dig into the schema file. It allows you to define documentation, mappings between friendly setting names and specific application settings in the underlying sys.config, define validation of values via datatype specifications, provide default values, and transform simplified values from the .conf into something more meaningful to your application using translation functions. 
+Short and sweet, and most importantly, easy for sysadmins and users to understand and modify. The real power of conform though is when you dig into the schema file. It allows you to define documentation, mappings between friendly setting names and specific application settings in the underlying sys.config, define validation of values via datatype specifications, provide default values, and transform simplified values from the .conf into something more meaningful to your application using translation functions.
 
 A schema is basically a single data structure. A keyword list, containing two top-level properties, `mappings`, and `translations`. Before we dive in, here's the schema for the .conf file above:
 
@@ -152,7 +152,7 @@ A schema is basically a single data structure. A keyword list, containing two to
         IO.puts("Unsupported console logging level: #{level}")
         exit(1)
     end,
-    "lager.handlers.file.error": fn 
+    "lager.handlers.file.error": fn
       _, path, nil ->
         [lager_file_backend: [file: path, level: :error]]
       _, path, acc ->
@@ -187,7 +187,7 @@ After a mapping is parsed according to its schema definition, if a translation f
 [{lager, [
   {handlers, [
     {lager_console_backend, info},
-    {lager_file_backend, [{file, "var/log/error.log"},    {level, error}]}, 
+    {lager_file_backend, [{file, "var/log/error.log"},    {level, error}]},
     {lager_file_backend, [{file, "/var/log/console.log"}, {level, info}]}
   ]}]},
  {myapp, [
@@ -230,7 +230,7 @@ Will be created archive with the `myapp.schema.ez` name in the your release whic
 mix conform.archive myapp/config/myapp.schema.exs
 ```
 
-`Conform` will collect dependencies which are pointed in the `import: [....]` and comppress they to the `myapp/config/myapp.schema.ez` archive. After this you can use `conform` script as always:
+`Conform` will collect dependencies which are pointed in the `import: [....]` and compress them to the `myapp/config/myapp.schema.ez` archive. After this you can use the `conform` script as always:
 
 ```
 mix conform.new --conf myapp/config/myapp.conf --schema myapp/config/myapp.schema.exs
@@ -267,48 +267,38 @@ I've also provided mix tasks to handle generating your initial .conf and .schema
 ]
 ```
 
-Where `MyModule1` and `MyModule2` must be module which provides callbacks for the mapping documentation and transition:
+Where `MyModule1` and `MyModule2` must be modules which implement the `Conform.Type` behaviour:
 
 ```elixir
 defmodule MyModule1 do
+  use Conform.Type
+
+  # You can return a string representing the documentation you wish to use,
+  # or false to use what is provided in the schema, under :doc. If you return
+  # documentation here, it will be appended to whatever is contained in :doc
   def to_doc(values) do
-    "Any string"
+    "Document your custom type here"
   end
 
-  def transition(mapping, val) do
-    # execute transition for your custom type
+  # Equivalent to the translation function in the schema
+  def translate(mapping, val, _acc) do
+    val
   end
 
-  def transition(mapping, val, _acc) do
-    # execute transition for your custom type
-  end
-end
-```
-
-If a custom module provides `to_doc/1` callback, the documentation from schema will be appended with the result of this callback, in other way only the default documentation will be used. If a mapping does not have transition in the schema, transition from a custom module will be used. Also you can provide additional `parse_datatype/2` callback to the your custom data type. By default `conform` reads values as strings from the configuration file. The `parse_datatype/2` callback allows to cast data to the needed type:
-
-```elixir
-defmodule MyModule1 do
-  def to_doc(values) do
-    "Any string"
-  end
-
-  def transition(mapping, val) do
-    # execute transition for your custom type
-  end
-
-  def transition(mapping, val, _acc) do
-    # execute transition for your custom type
-  end
-
+  # Since conform only parses values as binaries, use this function to
+  # convert to your desired datatype. This is called prior to `translate/3`
+  # Return {:ok, val} or {:error, reason}
   def parse_datatype(_key, val) when is_list(val) do
-    List.to_atom(val)
+    {:ok, List.to_atom(val)}
+  end
+  def parse_datatype(_key, val) do
+    {:ok, val}
   end
 
 end
 ```
 
-## Rationale 
+## Rationale
 
 Conform is a library for Elixir applications, specifically in the release phase. Elixir already offers a convenient configuration mechanism via `config/config.exs`, but it has downsides:
 
@@ -328,4 +318,3 @@ I'm glad to hear from anyone using this on what problems they are having, if any
 ## License
 
 The .conf parser in `conf_parse.peg` is licensed under Apache 2.0, per Basho. The rest of this project is licensed under the MIT license. Use as you see fit.
-

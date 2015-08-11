@@ -1,5 +1,5 @@
 defmodule ConfParseTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "can parse a valid conf file" do
     path = Path.join(["test", "confs", "test.conf"]) |> Path.expand

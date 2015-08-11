@@ -23,8 +23,8 @@
       datatype: [enum: [:error, :progress, :all]],
       default:  :all,
       doc: """
-      Restricts the error logging performed by the specified 
-      `sasl_error_logger` to error reports, progress reports, or 
+      Restricts the error logging performed by the specified
+      `sasl_error_logger` to error reports, progress reports, or
       both. Default is all. Just testing "nested strings".
       """
     ],
@@ -66,7 +66,7 @@
     "myapp.Custom.Enum": [
       doc: "Provide documentation for myapp.Custom.Enum here.",
       to: "myapp.Custom.Enum",
-      datatype: [{Conform.Type.Enum, [:dev, :prod, :test]}],
+      datatype: [{Conform.Types.Enum, [:dev, :prod, :test]}],
       default: :dev
      ]
   ],

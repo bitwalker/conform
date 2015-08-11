@@ -1,11 +1,12 @@
 defmodule ConfTranslateTest do
   use ExUnit.Case
+  import ExUnit.CaptureIO
 
   test "can generate default conf from schema" do
     path   = Path.join(["test", "schemas", "test.schema.exs"])
     schema = path |> Conform.Schema.load
     conf   = schema |> Conform.Translate.to_conf
-    assert conf == """
+    expected = """
     # The location of the error log. Should be a full path, i.e. /var/log/error.log.
     log.error.file = "/var/log/error.log"
 
@@ -16,8 +17,8 @@ defmodule ConfTranslateTest do
     # Allowed values: on, off
     log.syslog = on
 
-    # Restricts the error logging performed by the specified 
-    # `sasl_error_logger` to error reports, progress reports, or 
+    # Restricts the error logging performed by the specified
+    # `sasl_error_logger` to error reports, progress reports, or
     # both. Default is all. Just testing "nested strings".
     # Allowed values: error, progress, all
     sasl.log.level = all
@@ -46,6 +47,8 @@ defmodule ConfTranslateTest do
     myapp.Custom.Enum = dev
 
     """
+
+    assert ^expected = conf
   end
 
   test "can generate config as Elixir terms from .conf and schema with imports" do
@@ -57,31 +60,25 @@ defmodule ConfTranslateTest do
     schema_path = "#{cwd}/"  <> Path.join(["test", "fixtures", "example_app", "config", "test.schema.exs"])
 
     File.touch(sys_config_path <> "/sys.config")
-    {:ok, zip_path, _build_files} = Mix.Project.in_project(:example_app, example_app_path,
-      fn _ ->
-        Mix.Task.run("deps.get")
-        Mix.Task.run("deps.compile")
-        Mix.Task.run("compile")
-        Mix.Task.run("conform.archive", [schema_path])
-      end)
+    capture_io(fn ->
+      {:ok, zip_path, _build_files} = Mix.Project.in_project(:example_app, example_app_path,
+        fn _ ->
+          Mix.Task.run("deps.get")
+          Mix.Task.run("deps.compile")
+          Mix.Task.run("compile")
+          Mix.Task.run("conform.archive", [schema_path])
+        end)
 
-    expected = [
-      {:test,
-       [
-           {:another_val,2},
-           {:debug_level,:info},
-           {:env, :prod}
-       ]
-      }
-    ]
+      expected = [{:test, [{:another_val,2}, {:debug_level,:info}, {:env, :prod}]}]
 
-    :ok = Mix.Task.run("escript.build", [path: script])
-    _ = :os.cmd("#{script} --schema #{schema_path} --conf #{conf_path} --output-dir #{sys_config_path}" |> to_char_list)
-    {:ok, [sysconfig]} = :file.consult(sys_config_path <> "/sys.config")
-    assert Path.basename(zip_path) == "test.schema.ez"
-    assert sysconfig == expected
-    File.rm(sys_config_path <> "/sys.config")
-    File.rm(script)
+      :ok = Mix.Task.run("escript.build", [path: script])
+      _ = :os.cmd("#{script} --schema #{schema_path} --conf #{conf_path} --output-dir #{sys_config_path}" |> to_char_list)
+      {:ok, [sysconfig]} = :file.consult(sys_config_path <> "/sys.config")
+      assert Path.basename(zip_path) == "test.schema.ez"
+      assert sysconfig == expected
+      File.rm(sys_config_path <> "/sys.config")
+      File.rm(script)
+    end)
   end
 
   test "can generate config as Elixir terms from .conf and schema" do
@@ -114,8 +111,8 @@ defmodule ConfTranslateTest do
     path   = Path.join(["test", "schemas", "test.schema.exs"])
     schema = path |> Conform.Schema.load
     conf = """
-    # Restricts the error logging performed by the specified 
-    # `sasl_error_logger` to error reports, progress reports, or 
+    # Restricts the error logging performed by the specified
+    # `sasl_error_logger` to error reports, progress reports, or
     # both. Default is all. Just testing "nested strings".
     sasl.log.level = progress
 
