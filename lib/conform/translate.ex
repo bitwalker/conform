@@ -71,12 +71,14 @@ defmodule Conform.Translate do
         {key, value}
     end
 
+    schema = Keyword.delete(schema, :import)
+
     case schema do
       [mappings: mappings, translations: translations] ->
         # get complex data types
         {mappings, complex} = get_complex(mappings, translations, normalized_conf)
         # Parse the .conf into a map of applications and their settings, applying translations where defined
-        settings = Enum.reduce(mappings, %{},
+        settings = Enum.reduce(mappings, complex,
           fn {key, mapping}, result ->
             # Get the datatype for this mapping, falling back to binary if not defined
             datatype = Keyword.get(mapping, :datatype, :binary)
@@ -94,7 +96,9 @@ defmodule Conform.Translate do
             end
 
             # Break the schema key name into it's parts, [app, [key1, key2, ...]]
-            [app_name|setting_path] = Keyword.get(mapping, :to, key |> Atom.to_string) |> String.split(".")
+            [app_name|setting_path] = Keyword.get(mapping, :to, key |> Atom.to_string)
+                                      |> String.split(".")
+                                      |> Enum.map(&String.to_atom/1)
 
             # Get the translation function is_function one is defined
             translated_value = case get_in(translations, [key]) do
@@ -132,36 +136,43 @@ defmodule Conform.Translate do
                 false ->
                   []
               end
-            end) |> :lists.flatten
+            end) |> List.flatten
 
             result = update_in!(result, [app_name|setting_path |> repath], translated_value)
-
-            case res do
+            result = case res do
               [] ->
                 result
-              [records] ->
+              records ->
                 update_in!(records, [app_name|setting_path |> repath], translated_value)
             end
+            result
+            |> Stream.map(fn {key, value} -> {key, Enum.sort_by(value, fn {k,_} -> k end)} end)
+            |> Enum.sort_by(fn {key, _} -> key end)
         end)
 
         # One last pass to catch any config settings not present in the schema, but
         # which should still be present in the merged configuration
         merged = config |> Enum.reduce(settings, fn {app, app_config}, acc ->
-          app_name = app |> Atom.to_string
           # Ensure this app is present in the merged config
-          acc = case Map.has_key?(acc, app_name) do
+          acc = case Keyword.has_key?(acc, app) do
             true  -> acc
-            false -> put_in(acc, [app_name], %{})
+            false -> put_in(acc, [app], [])
           end
           # Add missing settings to merged config from config.exs
           app_config |> Enum.reduce(acc, fn {key, value}, acc ->
-            key_name = key |> Atom.to_string
-            case get_in(acc, [app_name, key_name]) do
-              nil -> put_in(acc, [app_name, key_name], value)
+            case get_in(acc, [app, key]) do
+              nil -> put_in(acc, [app, key], value)
               _   -> acc
             end
           end)
+          |> Enum.map(fn
+            {key, value} when is_list(value) ->
+              {key, Enum.sort_by(value, fn {k, _} -> k end)}
+            x ->
+              x
+          end)
         end)
+
 
         # Convert config map to Erlang config terms
         merged |> settings_to_config
@@ -181,24 +192,40 @@ defmodule Conform.Translate do
         case Regex.run(p, complex_data_type) do
           nil -> []
           _ ->
-            {complex_data_type, complex_type_name |> String.to_atom,
-             Enum.map(mapping, fn {complex_key, complex_mappings} ->
-               field         = String.split(Atom.to_string(complex_key), "*.")
-                               |> List.last
-                               |> String.to_atom
-               datatype      = Keyword.get(complex_mappings, :datatype, :binary)
-               default_value = Keyword.get(complex_mappings, :default, nil)
-
-               case get_in_complex(complex_type_name, normalized_conf, [complex_key]) do
-                 []         -> {field, default_value}
-                 conf_value ->
-                    case parse_datatype(datatype, conf_value, complex_key) do
+            case mapping do
+              [] ->
+                field         = String.to_atom(complex_type_name)
+                datatype      = get_in(mappings, [map_key, :datatype]) || :binary
+                default_value = get_in(mappings, [map_key, :default])
+                conf_key      = String.to_atom(complex_data_type <> "." <> complex_type_name)
+                case get_in_complex(complex_type_name, normalized_conf, [conf_key]) do
+                  [] -> {field, default_value}
+                  conf_value ->
+                    case parse_datatype(datatype, conf_value, complex_data_type <> "." <> complex_type_name) do
                       nil -> {field, conf_value}
                       val -> {field, val}
                     end
-               end
-             end)}
-        end
+                end
+              _ ->
+                {complex_data_type, complex_type_name |> String.to_atom,
+                 Enum.map(mapping, fn {complex_key, complex_mappings} ->
+                   field         = String.split(Atom.to_string(complex_key), "*.")
+                                   |> List.last
+                                   |> String.to_atom
+                   datatype      = Keyword.get(complex_mappings, :datatype, :binary)
+                   default_value = Keyword.get(complex_mappings, :default, nil)
+
+                   case get_in_complex(complex_type_name, normalized_conf, [complex_key]) do
+                     []         -> {field, default_value}
+                     conf_value ->
+                      case parse_datatype(datatype, conf_value, complex_key) do
+                        nil -> {field, conf_value}
+                        val -> {field, val}
+                      end
+                   end
+                 end)}
+              end
+          end
       end) |> List.flatten
 
       update_complex_acc(mapping, result, translations, data)
@@ -208,12 +235,14 @@ defmodule Conform.Translate do
   end
 
   defp update_complex_acc([], result, _, _), do: result
-  defp update_complex_acc([{_, map} | mapping], result, translations, data) do
-    map_key           = String.to_atom(Keyword.get(map, :to) <> ".*")
-    [app_name, path]  = Keyword.get(map, :to) |> String.split(".")
-    built = build_complex(mapping, translations, data, map_key) |> List.flatten
+  defp update_complex_acc([{from_key, map} | mapping], result, translations, data) do
+    to_key            = String.to_atom(Keyword.get(map, :to) <> ".*")
+    [app_name, path]  = Keyword.get(map, :to) |> String.split(".") |> Enum.map(&String.to_atom/1)
+    built = build_complex(mapping, translations, data, from_key, to_key)
+            |> List.flatten
+            |> Enum.sort_by(fn {k, _} -> k end)
     result = case result do
-      [] -> update_in!(%{}, [app_name, path], built)
+      [] -> update_in!([], [app_name, path], built)
       _  -> update_in!(result, [app_name, path], built)
     end
     update_complex_acc(mapping, result, translations, data)
@@ -228,8 +257,8 @@ defmodule Conform.Translate do
   end
 
   defp get_complex(complex, []), do: complex
-  defp get_complex(complex, [{key, _} | mappings]) do
-    case Regex.run(~r/\.\*/, key |> to_string) do
+  defp get_complex(complex, [{key, _} = mapping | mappings]) do
+    case Regex.run(~r/\.\*/, to_string(key)) do
       nil ->
         get_complex(complex, mappings)
       _ ->
@@ -246,15 +275,10 @@ defmodule Conform.Translate do
             end
           end)
 
-        result = Enum.filter(List.flatten([{key, result} | complex]),
-          fn {_, complex_mappings} ->
-            case complex_mappings do
-              [] -> false
-              _  -> true
-            end
-          end)
-
-        get_complex(result, mappings)
+        case result do
+          [] -> get_complex(List.flatten([{key, [mapping]} | complex]), mappings)
+          _  -> get_complex(List.flatten([{key, result} | complex]), mappings)
+        end
     end
   end
 
@@ -269,8 +293,13 @@ defmodule Conform.Translate do
       end)
 
     res = Enum.filter(res, fn {complex_key, _} ->
-      {_, wildcard_name} = get_name_under_wildcard(key, complex_key)
-      wildcard_name == name
+      case complex_key do
+        ^key ->
+          true
+        _ ->
+          {_, wildcard_name} = get_name_under_wildcard(key, complex_key)
+          wildcard_name == name
+      end
     end)
 
     case res do
@@ -302,11 +331,18 @@ defmodule Conform.Translate do
     {pattern, result}
   end
 
-  defp build_complex(mapping, translations, data, map_key) do
+  defp build_complex(mapping, translations, data, from_key, to_key) do
     Enum.map(data, fn {_, field_name, data} ->
-      case get_in(translations, [map_key]) do
+      case get_in(translations, [to_key]) do
         fun when is_function(fun) ->
-          map = Enum.reduce(data, %{}, fn {k, v}, acc -> Map.put(acc, k, v) end)
+          map = Enum.reduce(data, %{}, fn
+            {k, v}, acc ->
+              case k do
+                ^from_key -> Map.put(acc, field_name, v)
+                ^to_key   -> Map.put(acc, field_name, v)
+                _         -> Map.put(acc, k, v)
+              end
+          end)
           fun.(mapping, {field_name, map}, []) |> List.flatten
       end
     end)
@@ -314,10 +350,12 @@ defmodule Conform.Translate do
 
   defp repath(setting_path) do
     uc_set   = Enum.map(?A..?Z, fn i -> <<i::utf8>> end) |> Enum.into(HashSet.new)
-    new_path = repath(setting_path, uc_set, [], [])
+    setting_path
+    |> Enum.map(&Atom.to_string/1)
+    |> repath(uc_set, [], [])
     |> List.flatten
     |> Enum.reverse
-    new_path
+    |> Enum.map(&String.to_atom/1)
   end
 
   defp repath([], _uc_set, [], total_acc),       do: total_acc
@@ -341,7 +379,7 @@ defmodule Conform.Translate do
   defp update_in!(coll, [key|rest], value, acc) do
     path = acc ++ [key]
     case get_in(coll, path) do
-      nil -> put_in(coll, path, %{}) |> update_in!(rest, value, path)
+      nil -> put_in(coll, path, []) |> update_in!(rest, value, path)
       _   -> update_in!(coll, rest, value, path)
     end
   end

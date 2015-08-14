@@ -17,6 +17,7 @@ defmodule IntegrationTest do
                   debug_level: :info,
                   env: :test,
                   servers: [proxy: [{ {:eradius_proxy, 'proxy', proxy}, [{'127.0.0.1', "secret"}] }]]]]
+    assert effective == expected
     assert Keyword.equal?(expected, effective)
   end
 
@@ -62,7 +63,8 @@ defmodule IntegrationTest do
                   second: %{age: 40, username: "test_username2"}],
                  complex_list: [
                    buzz: %{age: 25, type: :person}, fido: %{age: 30, type: :dog}],
-                 some_val: :foo, some_val2: 2.5]]
+                 some_val: :foo, some_val2: 2.5,
+                 sublist: ["opt-2": "val2", opt1: "val1"]]]
 
     assert effective == expected
   end

@@ -36,7 +36,12 @@
       datatype: :integer,
       default: 30
     ],
-
+    # dynamic keyword list
+    "sublist_example.*": [
+      to: "my_app.sublist",
+      datatype: :binary,
+      default: []
+    ],
     # just a val
     "some_val": [
       doc:      "Just some atom.",
@@ -66,6 +71,10 @@
         username: value_map[:username],
         age: value_map[:age]
        }} | acc]
+    end,
+
+    "my_app.sublist.*": fn _, {key, value_map}, acc ->
+      [{key, value_map[key]}|acc]
     end
   ]
 ]
