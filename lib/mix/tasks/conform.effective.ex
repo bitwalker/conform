@@ -72,8 +72,14 @@ defmodule Mix.Tasks.Conform.Effective do
     end
     # Read .conf
     conf = case File.exists?(conf_path) do
-      true  -> conf_path |> Conform.Parse.file
       false -> []
+      true  ->
+        case Conform.Parse.file(conf_path) do
+          {:ok, terms} -> terms
+          {:error, reason} ->
+            error reason
+            exit(:normal)
+        end
     end
     # Load merged schemas
     app_schema = Conform.Schema.schema_path(app) |> Conform.Schema.load! |> Dict.delete(:import)

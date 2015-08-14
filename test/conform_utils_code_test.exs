@@ -228,12 +228,4 @@ defmodule ConformCodeTest do
     assert expected == result
   end
 
-  # test "can stringify a complex schema file" do
-  #   Path.join(["test", "schemas", "test.schema.exs"])
-  #   |> Path.expand
-  #   |> Conform.Schema.read!
-  #   |> Conform.Utils.Code.stringify
-
-  #   assert true
-  # end
 end

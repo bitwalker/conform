@@ -85,7 +85,7 @@ defmodule ConfTranslateTest do
     path   = Path.join(["test", "schemas", "test.schema.exs"])
     schema = path |> Conform.Schema.load
     conf   = schema |> Conform.Translate.to_conf
-    parsed = Conform.Parse.parse(conf)
+    parsed = Conform.Parse.parse!(conf)
     config = Conform.Translate.to_config([], parsed, schema)
     expect = [
       log: [
@@ -122,7 +122,7 @@ defmodule ConfTranslateTest do
     # * active-debug: it's going to be active, with verbose debugging information
     myapp.another_val = active
     """
-    parsed = Conform.Parse.parse(conf)
+    parsed = Conform.Parse.parse!(conf)
     config = Conform.Translate.to_config(config, parsed, schema)
     expect = [
       log: [
@@ -147,7 +147,7 @@ defmodule ConfTranslateTest do
     path   = Path.join(["test", "schemas", "test.schema.exs"])
     schema = path |> Conform.Schema.load
     conf   = schema |> Conform.Translate.to_conf
-    parsed = Conform.Parse.parse(conf)
+    parsed = Conform.Parse.parse!(conf)
     config = Conform.Translate.to_config([], parsed, schema)
 
     config_path = Path.join(System.tmp_dir!, "conform_test.config")

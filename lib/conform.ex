@@ -75,31 +75,36 @@ defmodule Conform do
 
   defp process(%Options{} = options) do
     # Read .conf and .schema.exs
-    conf   = options.conf |> Conform.Parse.file
-    schema = options.schema |> Conform.Schema.load! |> Dict.delete(:import)
-    arch_name = List.first(String.split(Path.basename(options.schema), ".")) <> ".schema.ez"
-    # load all imports from archive
-    load_imports(Path.dirname(options.schema) <> "/" <> arch_name)
-    # Read .config if exists
-    final = case options.config do
-      nil  ->
-        Conform.Translate.to_config([], conf, schema)
-      path ->
-        # Merge .config if exists and can be parsed
-        case Conform.Config.read(path) do
-          {:ok, [config]} ->
-            translated = Conform.Translate.to_config(config, conf, schema)
-            Conform.Config.merge(config, translated)
-          {:error, _} ->
-            error """
-            Unable to parse config at #{path}
-            Check that the file exists and is in the correct format.
-            """
-            exit(:normal)
+    final = case Conform.Parse.file(options.conf) do
+      {:error, reason} ->
+        error reason
+        exit(:normal)
+      {:ok, conf} ->
+        schema = options.schema |> Conform.Schema.load! |> Dict.delete(:import)
+        arch_name = List.first(String.split(Path.basename(options.schema), ".")) <> ".schema.ez"
+        # load all imports from archive
+        load_imports(Path.dirname(options.schema) <> "/" <> arch_name)
+        # Read .config if exists
+        case options.config do
+          nil  ->
+            Conform.Translate.to_config([], conf, schema)
+          path ->
+            # Merge .config if exists and can be parsed
+            case Conform.Config.read(path) do
+              {:ok, [config]} ->
+                translated = Conform.Translate.to_config(config, conf, schema)
+                Conform.Config.merge(config, translated)
+              {:error, _} ->
+                error """
+                Unable to parse config at #{path}
+                Check that the file exists and is in the correct format.
+                """
+                exit(:normal)
+            end
         end
     end
     # Write final .config to options.write_to
-    case (options.write_to |> Conform.Config.write(final)) do
+    case Conform.Config.write(options.write_to, final) do
       :ok ->
         :ok
       {:error, reason} ->

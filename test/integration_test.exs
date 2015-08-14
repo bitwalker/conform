@@ -3,7 +3,7 @@ defmodule IntegrationTest do
 
   test "effective configuration" do
     config = Path.join(["test", "example_app", "config.exs"]) |> Mix.Config.read!
-    conf   = Path.join(["test", "example_app", "test.conf"]) |> Conform.Parse.file
+    conf   = Path.join(["test", "example_app", "test.conf"]) |> Conform.Parse.file!
     schema = Path.join(["test", "example_app", "test.schema.exs"]) |> Conform.Schema.load!
 
     proxy = [{:default_route, {{127,0,0,1}, 1813, "secret"}},
@@ -35,7 +35,7 @@ defmodule IntegrationTest do
   end
 
   test "can accumulate values in transforms" do
-    conf   = Path.join(["test", "confs", "lager_example.conf"]) |> Conform.Parse.file
+    conf   = Path.join(["test", "confs", "lager_example.conf"]) |> Conform.Parse.file!
     schema = Path.join(["test", "schemas", "merge_master.schema.exs"]) |> Conform.Schema.load
 
     effective = Conform.Translate.to_config([], conf, schema)
@@ -53,7 +53,7 @@ defmodule IntegrationTest do
   end
 
   test "for the complex data types" do
-    conf   = Path.join(["test", "confs", "complex_example.conf"]) |> Conform.Parse.file
+    conf   = Path.join(["test", "confs", "complex_example.conf"]) |> Conform.Parse.file!
     schema = Path.join(["test", "schemas", "complex_schema.exs"]) |> Conform.Schema.load
     effective = Conform.Translate.to_config([], conf, schema)
     expected = [my_app:
@@ -68,7 +68,7 @@ defmodule IntegrationTest do
   end
 
   test "test for the custom data type" do
-    conf   = Path.join(["test", "confs", "test.conf"]) |> Conform.Parse.file
+    conf   = Path.join(["test", "confs", "test.conf"]) |> Conform.Parse.file!
     schema = Path.join(["test", "schemas", "test.schema.exs"]) |> Conform.Schema.load
     effective = Conform.Translate.to_config([], conf, schema)
     expected =  [log:
