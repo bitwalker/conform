@@ -1,7 +1,7 @@
 # Conform
 
-[![Build
-Status](https://travis-ci.org/bitwalker/conform.svg?branch=master)](https://travis-ci.org/bitwalker/conform)
+[![Master](https://travis-ci.org/bitwalker/conform.svg?branch=master)](https://travis-ci.org/bitwalker/conform)
+[![Hex.pm Version](http://img.shields.io/hexpm/v/conform.svg?style=flat)](https://hex.pm/packages/conform)
 
 The definition of conform is "Adapt or conform oneself to new or different conditions". As this library is used to adapt your application to its deployed environment, I think it's rather fitting. It's also a play on the word configuration, and the fact that Conform uses an init-style configuration, maintained in a `.conf` file.
 
