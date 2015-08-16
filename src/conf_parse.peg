@@ -36,9 +36,13 @@ line <- ((setting / comment / ws+) (crlf / eof)) / crlf %{
 
 %% A setting is a key and a value, joined by =, with surrounding
 %% whitespace ignored.
-setting <- ws* key ws* "=" ws* (string_value / value) ws* comment? %{
+setting <- ws* key ws* "=" ws* ((string_value / value) (", " / ",")?)+ ws* comment? %{
     [ _, Key, _, _Eq, _, Value, _, _ ] = Node,
-    {Key, Value}
+    ParsedValue = case lists:map(fun([V, _]) -> V end, Value) of
+      [SingleVal]             -> SingleVal;
+      [_Head|_Rest] = ListVal -> ListVal
+    end,
+    {Key, ParsedValue}
 %};
 
 %% A key is a series of dot-separated identifiers.

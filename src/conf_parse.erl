@@ -101,9 +101,13 @@ parse(Input) when is_binary(Input) ->
 
 -spec 'setting'(input(), index()) -> parse_result().
 'setting'(Input, Index) ->
-  p(Input, Index, 'setting', fun(I,D) -> (p_seq([p_zero_or_more(fun 'ws'/2), fun 'key'/2, p_zero_or_more(fun 'ws'/2), p_string(<<"=">>), p_zero_or_more(fun 'ws'/2), p_choose([fun 'string_value'/2, fun 'value'/2]), p_zero_or_more(fun 'ws'/2), p_optional(fun 'comment'/2)]))(I,D) end, fun(Node, _Idx) ->
+  p(Input, Index, 'setting', fun(I,D) -> (p_seq([p_zero_or_more(fun 'ws'/2), fun 'key'/2, p_zero_or_more(fun 'ws'/2), p_string(<<"=">>), p_zero_or_more(fun 'ws'/2), p_one_or_more(p_seq([p_choose([fun 'string_value'/2, fun 'value'/2]), p_optional(p_choose([p_string(<<",\s">>), p_string(<<",">>)]))])), p_zero_or_more(fun 'ws'/2), p_optional(fun 'comment'/2)]))(I,D) end, fun(Node, _Idx) ->
     [ _, Key, _, _Eq, _, Value, _, _ ] = Node,
-    {Key, Value}
+    ParsedValue = case lists:map(fun([V, _]) -> V end, Value) of
+      [SingleVal]             -> SingleVal;
+      [_Head|_Rest] = ListVal -> ListVal
+    end,
+    {Key, ParsedValue}
  end).
 
 -spec 'key'(input(), index()) -> parse_result().

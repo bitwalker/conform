@@ -19,7 +19,8 @@ defmodule ConfParseTest do
   test "can parse string values containing newlines" do
     path = Path.join(["test", "confs", "strings.conf"]) |> Path.expand
     conf = path |> Conform.Parse.file!
-    assert [{['logger', 'format'], '$time $metadata[$level] $levelpad$message\\n'}] == conf
+    assert [{['logger', 'format'], '$time $metadata[$level] $levelpad$message\\n'},
+            {['logger', 'values'], ['error', 'random_-\\\\alkjda;k__23232']}] == conf
   end
 
   test "fail to parse utf8" do
