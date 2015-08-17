@@ -23,6 +23,12 @@ defmodule ConfParseTest do
             {['logger', 'values'], ['error', 'random_-\\\\alkjda;k__23232']}] == conf
   end
 
+  test "can parse nested lists" do
+    conf = "app.nested_lists = [opt1 = val1, opt2 = \"val two\"], [opt1 = val3, opt2 = \"val4\"]"
+    result = Conform.Parse.parse!(conf)
+    assert [{['app', 'nested_lists'], [[opt1: 'val1', opt2: 'val two'], [opt1: 'val3', opt2: 'val4']]}] == result
+  end
+
   test "fail to parse utf8" do
     conf = Conform.Parse.parse!("setting = thingŒ\n")
     assert [{['setting'], {:error, 'Error converting value on line #1 to latin1'}}] == conf

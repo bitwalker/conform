@@ -101,7 +101,7 @@ parse(Input) when is_binary(Input) ->
 
 -spec 'setting'(input(), index()) -> parse_result().
 'setting'(Input, Index) ->
-  p(Input, Index, 'setting', fun(I,D) -> (p_seq([p_zero_or_more(fun 'ws'/2), fun 'key'/2, p_zero_or_more(fun 'ws'/2), p_string(<<"=">>), p_zero_or_more(fun 'ws'/2), p_one_or_more(p_seq([p_choose([fun 'string_value'/2, fun 'value'/2]), p_optional(p_choose([p_string(<<",\s">>), p_string(<<",">>)]))])), p_zero_or_more(fun 'ws'/2), p_optional(fun 'comment'/2)]))(I,D) end, fun(Node, _Idx) ->
+  p(Input, Index, 'setting', fun(I,D) -> (p_seq([p_zero_or_more(fun 'ws'/2), fun 'key'/2, p_zero_or_more(fun 'ws'/2), p_string(<<"=">>), p_zero_or_more(fun 'ws'/2), p_one_or_more(p_seq([p_choose([fun 'list_value'/2, fun 'string_value'/2, fun 'value'/2]), p_optional(p_choose([p_string(<<",\s">>), p_string(<<",">>)]))])), p_zero_or_more(fun 'ws'/2), p_optional(fun 'comment'/2)]))(I,D) end, fun(Node, _Idx) ->
     [ _, Key, _, _Eq, _, Value, _, _ ] = Node,
     ParsedValue = case lists:map(fun([V, _]) -> V end, Value) of
       [SingleVal]             -> SingleVal;
@@ -115,6 +115,17 @@ parse(Input) when is_binary(Input) ->
   p(Input, Index, 'key', fun(I,D) -> (p_seq([p_label('head', p_choose([fun 'word'/2, fun 'string_value'/2])), p_label('tail', p_zero_or_more(p_seq([p_string(<<".">>), p_choose([fun 'word'/2, fun 'string_value'/2])])))]))(I,D) end, fun(Node, _Idx) ->
     [{head, H}, {tail, T}] = Node,
     [unicode:characters_to_list(H)| [ unicode:characters_to_list(W) || [_, W] <- T]]
+ end).
+
+-spec 'list_value'(input(), index()) -> parse_result().
+'list_value'(Input, Index) ->
+  p(Input, Index, 'list_value', fun(I,D) -> (p_seq([p_not(p_choose([p_seq([p_zero_or_more(fun 'ws'/2), fun 'crlf'/2]), fun 'comment'/2])), p_string(<<"[">>), p_seq([p_not(p_string(<<"[">>)), p_one_or_more(p_seq([fun 'word'/2, p_zero_or_more(fun 'ws'/2), p_string(<<"=">>), p_zero_or_more(fun 'ws'/2), p_seq([p_choose([fun 'string_value'/2, fun 'value_in_list'/2]), p_optional(p_choose([p_string(<<",\s">>), p_string(<<",">>)]))])]))]), p_string(<<"]">>)]))(I,D) end, fun(Node, _Idx) ->
+    [_, _OpenBracket, [_, Elems], _CloseBracket] = Node,
+    Pairs = lists:map(fun([Key, _, _Eq, _, [Value, _]]) ->
+        Res = {erlang:list_to_atom(Key), Value},
+        Res
+    end, Elems),
+    Pairs
  end).
 
 -spec 'string_value'(input(), index()) -> parse_result().
@@ -135,6 +146,17 @@ parse(Input) when is_binary(Input) ->
   p(Input, Index, 'value', fun(I,D) -> (p_one_or_more(p_seq([p_not(p_choose([p_seq([p_zero_or_more(fun 'ws'/2), fun 'crlf'/2]), fun 'comment'/2])), p_anything()])))(I,D) end, fun(Node, Idx) ->
     case unicode:characters_to_binary(Node, utf8, latin1) of
         {_Status, _Begining, _Rest} ->
+            {error, ?FMT("Error converting value on line #~p to latin1", [line(Idx)])};
+        Bin ->
+            binary_to_list(Bin)
+    end
+ end).
+
+-spec 'value_in_list'(input(), index()) -> parse_result().
+'value_in_list'(Input, Index) ->
+  p(Input, Index, 'value_in_list', fun(I,D) -> (p_one_or_more(p_seq([p_not(p_choose([fun 'ws'/2, p_string(<<",">>), p_string(<<"]">>)])), p_anything()])))(I,D) end, fun(Node, Idx) ->
+    case unicode:characters_to_binary(Node, utf8, latin1) of
+        {_Status, _Beginning, _Rest} ->
             {error, ?FMT("Error converting value on line #~p to latin1", [line(Idx)])};
         Bin ->
             binary_to_list(Bin)

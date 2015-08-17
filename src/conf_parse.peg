@@ -36,7 +36,7 @@ line <- ((setting / comment / ws+) (crlf / eof)) / crlf %{
 
 %% A setting is a key and a value, joined by =, with surrounding
 %% whitespace ignored.
-setting <- ws* key ws* "=" ws* ((string_value / value) (", " / ",")?)+ ws* comment? %{
+setting <- ws* key ws* "=" ws* ((list_value / string_value / value) (", " / ",")?)+ ws* comment? %{
     [ _, Key, _, _Eq, _, Value, _, _ ] = Node,
     ParsedValue = case lists:map(fun([V, _]) -> V end, Value) of
       [SingleVal]             -> SingleVal;
@@ -49,6 +49,16 @@ setting <- ws* key ws* "=" ws* ((string_value / value) (", " / ",")?)+ ws* comme
 key <- head:(word / string_value) tail:("." (word / string_value))* %{
     [{head, H}, {tail, T}] = Node,
     [unicode:characters_to_list(H)| [ unicode:characters_to_list(W) || [_, W] <- T]]
+%};
+
+%% A list of values surrounded by brackets, keys are always atoms
+list_value <- (!((ws* crlf) / comment) "[" (!"[" (word ws* "=" ws* ((string_value / value_in_list) (", " / ",")?))+) "]") %{
+    [_, _OpenBracket, [_, Elems], _CloseBracket] = Node,
+    Pairs = lists:map(fun([Key, _, _Eq, _, [Value, _]]) ->
+        Res = {erlang:list_to_atom(Key), Value},
+        Res
+    end, Elems),
+    Pairs
 %};
 
 %% A value surrounded by double quotes
@@ -67,6 +77,16 @@ string_value <- (!((ws* crlf) / comment) '"' (!'"' ("\\\\" / '\\"' / .))* ("\r"?
 value <- (!((ws* crlf) / comment) .)+ %{
     case unicode:characters_to_binary(Node, utf8, latin1) of
         {_Status, _Begining, _Rest} ->
+            {error, ?FMT("Error converting value on line #~p to latin1", [line(Idx)])};
+        Bin ->
+            binary_to_list(Bin)
+    end
+%};
+
+%% A value is any character, except those which continue/close a list, with trailing whitespace stripped
+value_in_list <- (!(ws / "," / "]") .)+ %{
+    case unicode:characters_to_binary(Node, utf8, latin1) of
+        {_Status, _Beginning, _Rest} ->
             {error, ?FMT("Error converting value on line #~p to latin1", [line(Idx)])};
         Bin ->
             binary_to_list(Bin)

@@ -156,4 +156,17 @@ defmodule ConfTranslateTest do
     config_path |> File.rm!
     assert {:ok, [^config]} = result
   end
+
+  test "can translate with nested lists to conf" do
+    path   = Path.join(["test", "configs", "nested_list.exs"])
+    config = path |> Mix.Config.read! |> Macro.escape
+    schema = Conform.Schema.from_config(config)
+    conf   = Conform.Translate.to_conf(schema)
+    expected = """
+    # Provide documentation for my_app.sublist here.
+    my_app.sublist = [opt1 = \"val1\", opt2 = \"val4\"], [opt1 = \"val3\", opt2 = \"val4\"]
+
+    """
+    assert expected == conf
+  end
 end

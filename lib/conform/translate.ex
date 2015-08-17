@@ -18,6 +18,7 @@ defmodule Conform.Translate do
   """
   @spec to_conf([{atom, term}]) :: binary
   def to_conf(schema) do
+    schema = Keyword.delete(schema, :import)
     case schema do
       [mappings: mappings, translations: _] ->
         Enum.reduce mappings, "", fn {key, info}, result ->
@@ -72,7 +73,6 @@ defmodule Conform.Translate do
     end
 
     schema = Keyword.delete(schema, :import)
-
     case schema do
       [mappings: mappings, translations: translations] ->
         # get complex data types
@@ -436,11 +436,17 @@ defmodule Conform.Translate do
       raise TranslateErorr, message: "Invalid enum value for #{setting}."
     end
   end
-  defp parse_datatype([list: list_type], value, setting) do
+  defp parse_datatype([list: :ip], value, setting) do
     "#{value}"
     |> String.split(",")
     |> Enum.map(&String.strip/1)
-    |> Enum.map(&(parse_datatype(list_type, &1, setting)))
+    |> Enum.map(&(parse_datatype(:ip, &1, setting)))
+  end
+  defp parse_datatype([list: list_type], value, setting) when is_list(value) do
+    Enum.map(value, &(parse_datatype(list_type, &1, setting)))
+  end
+  defp parse_datatype({:atom, type}, {k, v}, setting) do
+    {k, parse_datatype(type, v, setting)}
   end
   defp parse_datatype(_datatype, _value, _setting), do: nil
 
@@ -453,6 +459,12 @@ defmodule Conform.Translate do
     end
   end
   defp write_datatype([enum: _], value, setting),  do: write_datatype(:atom, value, setting)
+  defp write_datatype([list: [list: list_type]], value, setting) when is_list(value) do
+    Enum.map(value, fn sublist ->
+      elems = Enum.map(sublist, &(write_datatype(list_type, &1, setting))) |> Enum.join(", ")
+      <<?[, elems::binary, ?]>>
+    end) |> Enum.join(", ")
+  end
   defp write_datatype([list: list_type], value, setting) when is_list(value) do
     value |> Enum.map(&(write_datatype(list_type, &1, setting))) |> Enum.join(", ")
   end
@@ -461,6 +473,10 @@ defmodule Conform.Translate do
   end
   defp write_datatype(:binary, value, _setting) do
     <<?", "#{value}", ?">>
+  end
+  defp write_datatype({:atom, type}, {k, v}, setting) do
+    converted = write_datatype(type, v, setting)
+    <<Atom.to_string(k)::binary, " = ", converted::binary>>
   end
   defp write_datatype(_datatype, value, _setting), do: "#{value}"
 

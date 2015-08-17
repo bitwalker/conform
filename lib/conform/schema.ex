@@ -172,7 +172,8 @@ defmodule Conform.Schema do
   @spec from_config([] | [{atom, term}]) :: [{atom, term}]
   def from_config([]), do: empty
   def from_config(config) when is_list(config) do
-    [ mappings:     to_schema(config),
+    [ import:       [],
+      mappings:     to_schema(config),
       translations: [] ]
   end
 
@@ -198,7 +199,7 @@ defmodule Conform.Schema do
           to_mapping("#{key}.#{setting}", k, v)
         end
       false ->
-        datatype = extract_datatype(value)
+        datatype     = extract_datatype(value)
         setting_name = "#{key}.#{setting}"
         ["#{setting_name}": [
           doc:     "Provide documentation for #{setting_name} here.",
@@ -224,6 +225,7 @@ defmodule Conform.Schema do
         [list: list_type]
     end
   end
+  defp extract_datatype({_, v}), do: {:atom, extract_datatype(v)}
   defp extract_datatype(_), do: :binary
 
   defp convert_to_datatype(:binary, v) when is_binary(v),     do: v
