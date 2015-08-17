@@ -442,8 +442,16 @@ defmodule Conform.Translate do
     |> Enum.map(&String.strip/1)
     |> Enum.map(&(parse_datatype(:ip, &1, setting)))
   end
-  defp parse_datatype([list: list_type], value, setting) when is_list(value) do
-    Enum.map(value, &(parse_datatype(list_type, &1, setting)))
+  defp parse_datatype([list: list_type], value, setting) do
+    case :io_lib.char_list(value) do
+      true  ->
+        "#{value}"
+        |> String.split(",")
+        |> Enum.map(&String.strip/1)
+        |> Enum.map(&(parse_datatype(list_type, &1, setting)))
+      false ->
+        Enum.map(value, &(parse_datatype(list_type, &1, setting)))
+    end
   end
   defp parse_datatype({:atom, type}, {k, v}, setting) do
     {k, parse_datatype(type, v, setting)}
