@@ -1,0 +1,247 @@
+defmodule Conform.Conf do
+  @moduledoc """
+  This module is exposed to schemas for usage in transformations, it
+  contains utility functions for fetching configuration information from
+  the current config state.
+  """
+
+  @doc """
+  Parses a .conf located at the provided path, does some initial
+  validation and reformatting, and dumps it into an ETS table for
+  further processing. The table identifier is returned, but the
+  preferred method for manipulating/querying the conf terms is via
+  this module's API.
+  """
+  @spec from_file(String.t) :: {:error, term} | {:ok, non_neg_integer() | atom()}
+  def from_file(path) when is_binary(path) do
+    case Conform.Parse.file(path) do
+      {:error, _} = err -> err
+      {:ok, parsed}     -> from(parsed)
+    end
+  end
+
+  @doc """
+  Parses a .conf from the provided binary, does some initial
+  validation and reformatting, and dumps it into an ETS table for
+  further processing. The table identifier is returned, but the
+  preferred method for manipulating/querying the conf terms is via
+  this module's API.
+  """
+  @spec from_binary(binary) :: {:error, term} | {:ok, non_neg_integer() | atom()}
+  def from_binary(conf) when is_binary(conf) do
+    case Conform.Parse.parse(conf) do
+      {:error, _} = err -> err
+      {:ok, parsed}     -> from(parsed)
+    end
+  end
+
+  defp from(conf) do
+    table = :ets.new(:conform_query, [:set, keypos: 1])
+    for {key, value} <- conf do
+      # In order to make sure that module names in key paths are not split,
+      # get_key_path rejoins those parts, the result is the actual key we will
+      # use in the final config
+      proper_key = get_key_path(key)
+      :ets.insert(table, {proper_key, value})
+    end
+    {:ok, table}
+  end
+
+  @doc """
+  Selects key/value pairs from the conf table which match the provided key exactly,
+  or match the provided key+variables exactly. Keys with variables (expressed as `$varname`),
+  act as wildcards for that element of the key, so they can match more than a single setting.
+
+  Results are returned in the form of `{key, value}` where key is the full key of the
+  setting.
+
+  ## Examples
+
+      iex> table = :ets.new(:test, [:set, keypos: 1])
+      ...> :ets.insert(table, {['lager', 'handlers', 'console', 'level'], :info})
+      ...> :ets.insert(table, {['lager', 'handlers', 'file', 'error'], '/var/log/error.log'})
+      ...> #{__MODULE__}.get(table, "lager.handlers.console.level")
+      [{['lager', 'handlers', 'console', 'level'], :info}]
+      ...> #{__MODULE__}.get(table, "lager.handlers.$backend.$setting")
+      [{['lager', 'handlers', 'console', 'level'], :info},
+       {['lager', 'handlers', 'file', 'error'], '/var/log/error.log'}]
+  """
+  @spec get(non_neg_integer() | atom(), String.t | [char_list]) :: [{[atom], term}] | {:error, term}
+  def get(table, key) when is_binary(key), do: get(table, get_key_path(key))
+  def get(table, query) when is_list(query) do
+    # Execute query
+    case wildcard_get(table, query) do
+      {:error, _} = err -> err
+      results           -> Enum.map(results, fn {key, _, value} -> {key, value} end)
+    end
+  end
+
+  @doc false
+  def wildcard_get(table, query) when is_list(query) do
+    # Bind variables elements of the query to ETS match variables
+    query_parts = query
+                  |> Enum.with_index
+                  |> Enum.map(fn {[?$|_], i} -> {:'$#{i+1}', i}; {k, _} -> {k, nil} end)
+    # Get list of variables to select, paired with their original names
+    variables  = query_parts
+                 |> Enum.filter(fn {_, nil} -> false; _ -> true end)
+                 |> Enum.map(fn {var, i} -> {{Enum.at(query, i), var}} end)
+    # Destruct with_index tuple
+    query_parts  = Enum.map(query_parts, fn {part, _} -> part end)
+    # Prepare query
+    select_expr = [{{query_parts, :'$100'}, [], [{{query_parts, variables, :'$100'}}]}]
+    :ets.select(table, select_expr)
+  end
+
+  @doc """
+  Selects key/value pairs from the conf table which match the provided key, or
+  are a child of the provided key. Keys can contain variables expressed as `$varname`,
+  which act as wildcards for that element of the key.
+
+  Results are returned in the form of `{key, value}` where key is the full key of the
+  setting.
+
+  ## Examples
+
+      iex> table = :ets.new(:test, [:set, keypos: 1])
+      ...> :ets.insert(table, {['lager', 'handlers', 'console', 'level'], :info})
+      ...> :ets.insert(table, {['lager', 'handlers', 'file', 'error'], '/var/log/error.log'})
+      ...> #{__MODULE__}.find(table, "lager.handlers.$backend.level")
+      [{['lager', 'handlers', 'console', 'level'], :info}]
+      ...> #{__MODULE__}.get(table, "lager.handlers.$backend")
+      [{['lager', 'handlers', 'console', 'level'], :info},
+       {['lager', 'handlers', 'file', 'error'], '/var/log/error.log'}]
+  """
+  @spec find(non_neg_integer() | atom(), String.t | [char_list]) :: [{[atom], term}]
+  def find(table, key) when is_binary(key), do: get_matches(table, get_key_path(key))
+  def find(table, key) when is_list(key),   do: get_matches(table, key)
+
+  @doc """
+  Removes any key/value pairs from the conf table which match the provided key or
+  are a child of the provided key.
+  """
+  @spec remove(non_neg_integer() | atom(), String.t | [char_list]) :: :ok
+  def remove(table, key) when is_binary(key), do: remove(table, get_key_path(key))
+  def remove(table, key) when is_list(key) do
+    case get_matches(table, key) do
+      []      -> :ok
+      matches -> Enum.each(matches, fn match -> :ets.delete_object(table, match) end)
+    end
+  end
+
+  @doc """
+  Given a string or atom of the form `some.path.to.a.setting`,
+  it breaks it into a list of it's component parts, ensuring that
+  embedded module names are preserved, i.e.
+      "myapp.Some.Module.setting" => ['myapp', 'Some.Module', 'setting']
+  """
+  def get_key_path(key)
+
+  def get_key_path(key) when is_atom(key) do
+    key
+    |> Atom.to_string
+    |> get_key_path
+  end
+  def get_key_path(key) when is_binary(key) do
+    key
+    |> String.split(".", trim: true)
+    |> join_module_parts
+    |> Enum.map(&String.to_char_list/1)
+  end
+  def get_key_path(key) when is_list(key) do
+    key
+    |> Enum.map(&List.to_string/1)
+    |> join_module_parts
+    |> Enum.map(&String.to_char_list/1)
+  end
+
+  # Handles joining module name parts contained in an list of key parts
+  # into a single part, preserving the rest of the list, i.e.:
+  #   ['myapp', 'Some', 'Module', 'setting'] => ['myapp', 'Some.Module', 'setting']
+  defp join_module_parts(parts) when is_list(parts) do
+    join_module_parts(parts, [], <<>>) |> Enum.reverse
+  end
+  defp join_module_parts([], acc, <<>>), do: acc
+  defp join_module_parts([], acc, name), do: [name|acc]
+  defp join_module_parts([<<c::utf8, _::binary>> = h|t], acc, <<>>) when c in ?A..?Z do
+    join_module_parts(t, acc, h)
+  end
+  defp join_module_parts([<<c::utf8, _::binary>> = h|t], acc, name) when c in ?A..?Z do
+    join_module_parts(t, acc, name <> "." <> h)
+  end
+  defp join_module_parts([h|t], acc, <<>>), do: join_module_parts(t, [h|acc], <<>>)
+  defp join_module_parts([h|t], acc, name), do: join_module_parts(t, [h, name|acc], <<>>)
+
+  # Given a key query and an ETS table identifier, execute a query for objects which
+  # have keys which match that query. For example:
+  #
+  # Call: get_matches(table, ['lager', 'handlers', '$backend'])
+  #
+  # ETS table contents:
+  #  [{['lager', 'handlers', 'console', 'level'], 'info'},
+  #   {['myapp', 'some', 'important', 'setting'], '127.0.0.1:80, 127.0.0.2:81'},
+  #   {['lager', 'handlers', 'file', 'error'], '/var/log/error.log'},
+  #   {['lager', 'handlers', 'file', 'info'], '/var/log/console.log'},
+  #   {['myapp', 'MyModule.Blah', 'foo'], 'bar'}]
+  #
+  # Results:
+  # [{['lager', 'handlers', 'console', 'level'], 'info'},
+  #  {['lager', 'handlers', 'file', 'error'], '/var/log/error.log'},
+  #  {['lager', 'handlers', 'file', 'info'], '/var/log/console.log'}]
+  #
+  defp get_matches(table, query) do
+    case :ets.select(table, build_match_expr(query)) do
+      {:error, _} = err -> err
+      results -> Enum.map(results, fn {variables, key, child_key, value} ->
+        proper_key = Enum.map(key ++ child_key, fn
+          [?$|_] = var ->
+            {_, key_part} = List.keyfind(variables, var, 0)
+            key_part
+          key_part -> key_part
+        end)
+        {proper_key, value}
+      end)
+    end
+  end
+
+  # Converts a key into a match expression for that key,
+  # where matches are the key + any children of that key.
+  defp build_match_expr(key) do
+    definition = build_match_fun(key)
+    {fun, _}   = Code.eval_quoted(definition)
+    :ets.fun2ms(fun)
+  end
+
+  # Constructs a quoted function definition which matches the provided ETS key
+  # The function it builds is effectively the following, with the assumption that
+  # `key` is ['lager', 'handlers', '$backend']:
+  #
+  #   fn {['lager', 'handlers', backend | rest], value} when length(rest) >= 0 ->
+  #     {[{'$backend', backend}], ['lager', 'handlers', '$backend'], rest, value}
+  #   end
+  defp build_match_fun(key) do
+    key_parts  = key
+                 |> Enum.with_index
+                 |> Enum.map(fn {[?$|name], i} -> {{List.to_atom(name), [], Elixir}, i}; {k, _} -> {k, nil} end)
+    variables  = key_parts
+                 |> Enum.filter(fn {_, nil} -> false; _ -> true end)
+                 |> Enum.map(fn {var, i} -> {Enum.at(key, i), var} end)
+    key_parts  = Enum.map(key_parts, fn {part, _} -> part end)
+    last_part  = List.last(key_parts)
+    key_parts  = Enum.take(key_parts, Enum.count(key_parts) - 1)
+    {:fn, [], [{:->, [],
+      [
+        [{:when, [],
+          #args, basically fn {[key_parts | rest], value} ->
+          [{key_parts ++ [{:|, [], [last_part, {:rest, [], Elixir}]}], {:value, [], Elixir}},
+           {:>=, [context: Elixir, import: Kernel],
+                [{:length, [context: Elixir, import: Kernel],
+                [{:rest, [], Elixir}]}, 0]}]}],
+        #body
+        {:{}, [],
+          [variables, key, {:rest, [], Elixir}, {:value, [], Elixir}]
+        }
+      ]
+    }]}
+  end
+end

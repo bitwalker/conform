@@ -3,42 +3,33 @@
     #
     # first complex
     #
-    "complex_another_list.*": [
-      to: "my_app.complex_another_list",
-      datatype: [:complex],
-      default: []
-    ],
-    "complex_another_list.*.username": [
-      to: "my_app.complex_another_list",
+    "complex_another_list.$person.username": [
+      to: "my_app.complex_another_list.$person.username",
       datatype: :binary,
       default: :undefined
     ],
-    "complex_another_list.*.age": [
-      to: "my_app.complex_another_list",
+    "complex_another_list.$person.age": [
+      to: "my_app.complex_another_list.$person.age",
       datatype: :integer,
       default: :undefined
     ],
     #
     # second complex
     #
-    "complex_list.*": [
-      to: "my_app.complex_list",
-      datatype: [:complex],
-      default: []
-    ],
-    "complex_list.*.type": [
-      to: "my_app.complex_list",
+    "complex_list.$person.type": [
+      to: "my_app.complex_list.$person.type",
       datatype: :atom,
       default:  :undefined
     ],
-    "complex_list.*.age": [
-      to: "my_app.complex_list",
+    "complex_list.$person.age": [
+      to: "my_app.complex_list.$person.age",
       datatype: :integer,
-      default: 30
+      default: 30,
+      validators: ['Conform.Validators.RangeValidator': 1..100]
     ],
     # dynamic keyword list
-    "sublist_example.*": [
-      to: "my_app.sublist",
+    "sublist_example.$key": [
+      to: "my_app.sublist.$key",
       datatype: :binary,
       default: []
     ],
@@ -58,23 +49,6 @@
     ]
   ],
 
-  translations: [
-    "my_app.complex_list.*": fn _, {key, value_map}, acc ->
-      [{key, %{
-        type: value_map[:type],
-        age:  value_map[:age]
-       }} | acc]
-    end,
-
-    "my_app.complex_another_list.*": fn _, {key, value_map}, acc ->
-      [{key, %{
-        username: value_map[:username],
-        age: value_map[:age]
-       }} | acc]
-    end,
-
-    "my_app.sublist.*": fn _, {key, value_map}, acc ->
-      [{key, value_map[key]}|acc]
-    end
+  transforms: [
   ]
 ]

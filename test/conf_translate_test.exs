@@ -4,7 +4,7 @@ defmodule ConfTranslateTest do
 
   test "can generate default conf from schema" do
     path   = Path.join(["test", "schemas", "test.schema.exs"])
-    schema = path |> Conform.Schema.load
+    schema = path |> Conform.Schema.load!
     conf   = schema |> Conform.Translate.to_conf
     expected = """
     # The location of the error log. Should be a full path, i.e. /var/log/error.log.
@@ -46,9 +46,12 @@ defmodule ConfTranslateTest do
     # Allowed values: dev, prod, test
     myapp.Custom.Enum = dev
 
+    # The volume of some thing. Valid values are 1-11.
+    myapp.volume = 1
+
     """
 
-    assert ^expected = conf
+    assert expected == conf
   end
 
   test "can generate config as Elixir terms from .conf and schema with imports" do
@@ -69,7 +72,7 @@ defmodule ConfTranslateTest do
           Mix.Task.run("conform.archive", [schema_path])
         end)
 
-      expected = [{:test, [{:another_val,2}, {:debug_level,:info}, {:env, :prod}]}]
+      expected = [{:test, [{:another_val,3}, {:debug_level,:info}, {:env, :prod}]}]
 
       :ok = Mix.Task.run("escript.build", [path: script])
       _ = :os.cmd("#{script} --schema #{schema_path} --conf #{conf_path} --output-dir #{sys_config_path}" |> to_char_list)
@@ -83,47 +86,9 @@ defmodule ConfTranslateTest do
 
   test "can generate config as Elixir terms from .conf and schema" do
     path   = Path.join(["test", "schemas", "test.schema.exs"])
-    schema = path |> Conform.Schema.load
-    conf   = schema |> Conform.Translate.to_conf
-    parsed = Conform.Parse.parse!(conf)
-    config = Conform.Translate.to_config([], parsed, schema)
-    expect = [
-      log: [
-        console_file: "/var/log/console.log",
-        error_file:   "/var/log/error.log",
-        syslog: :on
-      ],
-      logger: [format: "$time $metadata[$level] $levelpad$message\n"],
-      myapp: [
-        {:'Custom.Enum', :dev},
-        {Some.Module, [val: :foo]},
-        another_val: {:on, [data: %{log: :warn}]},
-        db: [hosts: [{"127.0.0.1", "8001"}]],
-        some_val: :bar
-      ],
-      sasl:  [errlog_type: :all]
-    ]
-    assert Keyword.equal?(expect, config)
-  end
-
-  test "can generate config as Elixir terms from existing config, .conf and schema" do
-    config = [sasl: [errlog_type: :error], log: [syslog: :off]]
-    path   = Path.join(["test", "schemas", "test.schema.exs"])
-    schema = path |> Conform.Schema.load
-    conf = """
-    # Restricts the error logging performed by the specified
-    # `sasl_error_logger` to error reports, progress reports, or
-    # both. Default is all. Just testing "nested strings".
-    sasl.log.level = progress
-
-    # Determine the type of thing.
-    # * active: it's going to be active
-    # * passive: it's going to be passive
-    # * active-debug: it's going to be active, with verbose debugging information
-    myapp.another_val = active
-    """
-    parsed = Conform.Parse.parse!(conf)
-    config = Conform.Translate.to_config(config, parsed, schema)
+    schema = path |> Conform.Schema.load!
+    {:ok, conf} = schema |> Conform.Translate.to_conf |> Conform.Conf.from_binary
+    config = Conform.Translate.to_config(schema, [], conf)
     expect = [
       log: [
         console_file: "/var/log/console.log",
@@ -137,21 +102,60 @@ defmodule ConfTranslateTest do
         another_val: {:on, [data: %{log: :warn}]},
         db: [hosts: [{"127.0.0.1", "8001"}]],
         some_val: :bar,
+        volume: 1
+      ],
+      sasl:  [errlog_type: :all]
+    ]
+    assert config == expect
+  end
+
+  test "can generate config as Elixir terms from existing config, .conf and schema" do
+    config = [sasl: [errlog_type: :error], log: [syslog: :off]]
+    path   = Path.join(["test", "schemas", "test.schema.exs"])
+    schema = Conform.Schema.load!(path)
+    conf = """
+    # Restricts the error logging performed by the specified
+    # `sasl_error_logger` to error reports, progress reports, or
+    # both. Default is all. Just testing "nested strings".
+    sasl.log.level = progress
+
+    # Determine the type of thing.
+    # * active: it's going to be active
+    # * passive: it's going to be passive
+    # * active-debug: it's going to be active, with verbose debugging information
+    myapp.another_val = active
+    """
+    {:ok, parsed} = Conform.Conf.from_binary(conf)
+    config = Conform.Translate.to_config(schema, config, parsed)
+    expect = [
+      log: [
+        console_file: "/var/log/console.log",
+        error_file:   "/var/log/error.log",
+        syslog: :on
+      ],
+      logger: [format: "$time $metadata[$level] $levelpad$message\n"],
+      myapp: [
+        {:'Custom.Enum', :dev},
+        {Some.Module, [val: :foo]},
+        another_val: {:on, [data: %{log: :warn}]},
+        db: [hosts: [{"127.0.0.1", "8001"}]],
+        some_val: :bar,
+        volume: 1
       ],
       sasl:  [errlog_type: :progress]
     ]
-    assert Keyword.equal?(expect, config)
+    assert config == expect
   end
 
   test "can write config to disk as Erlang terms in valid app/sys.config format" do
     path   = Path.join(["test", "schemas", "test.schema.exs"])
-    schema = path |> Conform.Schema.load
-    conf   = schema |> Conform.Translate.to_conf
-    parsed = Conform.Parse.parse!(conf)
-    config = Conform.Translate.to_config([], parsed, schema)
+    schema = Conform.Schema.load!(path)
+    conf   = Conform.Translate.to_conf(schema)
+    {:ok, parsed} = Conform.Conf.from_binary(conf)
+    config = Conform.Translate.to_config(schema, [], parsed)
 
     config_path = Path.join(System.tmp_dir!, "conform_test.config")
-    :ok    = config_path |> Conform.Config.write(config)
+    :ok    = config_path |> Conform.SysConfig.write(config)
     result = config_path |> String.to_char_list |> :file.consult
     config_path |> File.rm!
     assert {:ok, [^config]} = result

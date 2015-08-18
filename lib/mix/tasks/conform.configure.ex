@@ -37,11 +37,11 @@ defmodule Mix.Tasks.Conform.Configure do
 
     if continue? do
       # Convert configuration to schema format
-      schema = Conform.Schema.load!(schema_path) |> Dict.delete(:import)
+      schema = Conform.Schema.load!(schema_path)
       # Convert to .conf
       conf = Conform.Translate.to_conf(schema)
       # Output configuration to `output_path`
-      output_path |> File.write!(conf)
+      File.write!(output_path, conf)
       info "The .conf file for #{app} has been placed in #{Path.relative_to_cwd(output_path)}"
     end
   end

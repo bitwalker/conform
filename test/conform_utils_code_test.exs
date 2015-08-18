@@ -216,7 +216,7 @@ defmodule ConformCodeTest do
           {:baz, :qux} ->
             :bazqux
           {^x, ^y} ->
-            result = <<Kernel.to_string(x) :: binary, Kernel.to_string(y) :: binary>> |> String.to_atom()
+            result = \"\#{x}\#{y}\" |> String.to_atom()
             result
         end
       end

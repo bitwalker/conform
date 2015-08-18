@@ -1,4 +1,4 @@
-defmodule Conform.Config do
+defmodule Conform.SysConfig do
   @moduledoc """
   This module is responsible for reading and writing,
   and manipulating *.config files
@@ -26,26 +26,17 @@ defmodule Conform.Config do
   @doc """
   Print a config to the console with pretty formatting
   """
-  def print(config) do
+  def pprint(config) do
     config
-    |> pretty
-    |> print_raw
+    |> prettify
+    |> IO.puts
   end
 
   @doc """
   Print a config to the console without applying any formatting
   """
-  def print_raw(config) do
-    IO.puts(config)
-  end
-
-  @doc """
-  apply pretty formatting to a config
-  """
-  def pretty(config) do
-    config
-    |> Inspect.Algebra.to_doc(%Inspect.Opts{pretty: true, limit: 1000})
-    |> Inspect.Algebra.format(80)
+  def print(config) do
+    IO.inspect(config)
   end
 
   @doc """
@@ -54,10 +45,15 @@ defmodule Conform.Config do
   in the case of conflicts.
   """
   @spec merge(Keyword.t, Keyword.t) :: Keyword.t
-  def merge(config1, config2) do
-    Keyword.merge(config1, config2, fn _, app1, app2 ->
-      Keyword.merge(app1, app2)
-    end)
+  defdelegate merge(config1, config2), to: Conform.Utils
+
+  @doc """
+  Apply pretty formatting to a config
+  """
+  def prettify(config) do
+    config
+    |> Inspect.Algebra.to_doc(%Inspect.Opts{pretty: true, limit: 1000})
+    |> Inspect.Algebra.format(80)
   end
 
 end

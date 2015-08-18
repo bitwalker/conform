@@ -72,43 +72,41 @@ defmodule Mix.Tasks.Conform.Effective do
     end
     # Read .conf
     conf = case File.exists?(conf_path) do
-      false -> []
+      false -> nil
       true  ->
-        case Conform.Parse.file(conf_path) do
-          {:ok, terms} -> terms
+        case Conform.Conf.from_file(conf_path) do
           {:error, reason} ->
             error reason
             exit(:normal)
+          {:ok, table} ->
+            table
         end
     end
     # Load merged schemas
-    app_schema = Conform.Schema.schema_path(app) |> Conform.Schema.load! |> Dict.delete(:import)
-    schema = Conform.Schema.coalesce |> Conform.Schema.merge(app_schema)
+    schema = Conform.Schema.schema_path(app) |> Conform.Schema.load!
     # Translate .conf -> config, using settings from config if one is
     # not provided in the .conf. If no setting is present in either
     # the config, or the .conf, the default from the schema is used.
-    effective = Conform.Translate.to_config(config, conf, schema)
+    effective = Conform.Translate.to_config(schema, config, conf)
     # Print the configuration as requested
     output = case args.options.type do
       :schema -> Conform.Schema.stringify(schema)
-      :all -> Conform.Config.pretty(effective)
-      :app ->
-        case effective |> Keyword.get(args.options.app) do
-          nil        ->
+      :all    -> Conform.SysConfig.prettify(effective)
+      :app    ->
+        case Keyword.get(effective, args.options.app) do
+          nil ->
             notice "App not found!"
             ""
           app_config ->
-            Conform.Config.pretty(app_config)
+            Conform.SysConfig.prettify(app_config)
         end
       :key ->
-        effective |> extract_key(args.options.key) |> Conform.Config.pretty
+        effective |> extract_key(args.options.key) |> Conform.SysConfig.prettify
     end
 
     case args.options.output do
-      :stdout ->
-        Conform.Config.print_raw output
-      path ->
-        path |> File.write!(output)
+      :stdout -> IO.puts(output)
+      path    -> File.write!(path, output)
     end
   end
 

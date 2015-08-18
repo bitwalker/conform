@@ -1,12 +1,11 @@
 [
-  import: [
-    :fake_app,
-  ],
+  import:  [:fake_app],
+  extends: [:fake_app],
   mappings: [
     "test.env": [
       doc: "Provide documentation for test.env here.",
       to: "test.env",
-      datatype: [{Conform.Types.Enum, [:dev, :prod]}],
+      datatype: [{:'Conform.Types.Enum', [:dev, :prod]}],
       default: :dev
     ],
     "test.some_val": [
@@ -22,9 +21,12 @@
       default: :info
     ]
   ],
-  translations: [
-    "test.some_val": fn _mapping, val ->
-      val |> FakeApp.inc_val_test
+  transforms: [
+    "test.another_val": fn conf ->
+      case Conform.Conf.get(conf, "test.another_val") do
+        [{_, val}] -> FakeApp.inc_val_test(val)
+        []  -> nil
+      end
     end
   ]
 ]

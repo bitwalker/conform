@@ -23,8 +23,12 @@ defmodule Conform.Utils.Code do
   end
 
   defp do_stringify(list) when is_list(list) do
-    indent!
-    format_list(list, <<?[>>)
+    case list do
+      [] -> <<?[, ?]>>
+      _  ->
+        indent!
+        format_list(list, <<?[>>)
+    end
   end
   defp do_stringify(string) when is_binary(string) do
     case string |> String.contains?("\n") do
@@ -77,8 +81,12 @@ defmodule Conform.Utils.Code do
   # A key/value pair list item
   defp format_list_item({key, value}, acc) do
     stringified_value      = do_stringify(value)
-    <<?:, keystr::binary>> = Macro.to_string(key)
-    acc <> "\n" <> tabs(get_indent) <> keystr <> ": " <> stringified_value
+    case Macro.to_string(key) do
+      <<?:, keystr::binary>> ->
+        acc <> "\n" <> tabs(get_indent) <> keystr <> ": " <> stringified_value
+      keystr ->
+        acc <> "\n" <> tabs(get_indent) <> "\"#{keystr}\": " <> stringified_value
+    end
   end
   # Any other list item value
   defp format_list_item(val, acc) do

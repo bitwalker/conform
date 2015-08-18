@@ -5,33 +5,52 @@ defmodule Mix.Tasks.Conform.Archive do
   """
 
   def run([schema_path]) do
-    {:ok, curr_path} = File.cwd
-    arch_dir = Path.dirname(schema_path)
-    build_dir = case String.split(arch_dir, "/") |> List.last do
-                  "files" ->
-                    "#{curr_path}/_build/#{Mix.env}/lib"
-                  _ ->
-                    Path.dirname(arch_dir) <> "/_build/#{Mix.env}/lib"
+    curr_path  = File.cwd!
+    schema_dir = Path.dirname(schema_path) |> Path.expand
+    {build_dir, deps_dir} = case String.split(schema_dir, "/") |> List.last do
+      "files" ->
+        {"#{curr_path}/_build/#{Mix.env}/lib", "#{curr_path}/deps"}
+      _ ->
+        dirname = Path.dirname(schema_dir)
+        {"#{dirname}/_build/#{Mix.env}/lib", "#{dirname}/deps"}
     end
 
-    schema = Conform.Schema.load!(schema_path)
-    imports = Keyword.get(schema, :import, [])
-    case imports do
-      [] ->
-        {:ok, "", []}
-      _ ->
-        File.cd(build_dir)
-        # collect files for archive
-        build_files = Enum.reduce(imports, [], fn(deps_app, acc) ->
-          {:ok, files_list} = :file.list_dir("#{deps_app}/ebin")
-          files_list = Enum.map(files_list, fn(filename) -> ("#{deps_app}/ebin/" <> "#{filename}") |> to_char_list end)
-          :lists.append(acc, files_list)
+    raw_schema = Conform.Schema.parse!(schema_path)
+    imports = Keyword.get(raw_schema, :import)
+    extends = Keyword.get(raw_schema, :extends)
+    case {imports, extends} do
+      {[], []} -> {:ok, "", []}
+      {_, _}   ->
+        File.cd! build_dir
+        # Make config dir in _build, move schema files there
+        archiving = Enum.reduce(extends, [], fn app, acc ->
+          src_path = Path.join([deps_dir, "#{app}", "config", "#{app}.schema.exs"])
+          if File.exists?(src_path) do
+            dest_path = Path.join(["#{app}", "config", "#{app}.schema.exs"])
+            File.mkdir_p!(Path.dirname(dest_path))
+            File.cp!(src_path, dest_path)
+            [String.to_char_list(dest_path) | acc]
+          else
+            []
+          end
+        end)
+        # Add imported application BEAM files to archive
+        archiving = Enum.reduce(imports, archiving, fn app, acc ->
+          path  = Path.join("#{app}", "ebin")
+          files = path
+          |> File.ls!
+          |> Enum.map(fn filename -> Path.join(path, filename) end)
+          |> Enum.map(&String.to_char_list/1)
+          files ++ acc
         end)
         # create archive
-        arch_name = List.first(String.split(Path.basename(schema_path), "."))
-        {:ok, zip_path} = :zip.create(arch_dir <> "/#{arch_name}.schema.ez" |> to_char_list, build_files)
-        File.cd(curr_path)
-        {:ok, zip_path, build_files}
+        [archive_name|_] = String.split(Path.basename(schema_path), ".")
+        archive_path     = Path.join(schema_dir, "#{archive_name}.schema.ez")
+        {:ok, zip_path}  = :zip.create('#{archive_path}', archiving)
+        # Reset current directory
+        File.cd! curr_path
+        # Return the path to the archive and what was archived
+        {:ok, zip_path, archiving}
     end
   end
 end
