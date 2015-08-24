@@ -486,7 +486,12 @@ defmodule Conform.Translate do
     converted = write_datatype(type, v, setting)
     <<Atom.to_string(k)::binary, " = ", converted::binary>>
   end
-  defp write_datatype(_datatype, value, _setting), do: "#{value}"
+  defp write_datatype(_datatype, value, _setting) do
+    case "#{value}" do
+      "" -> <<?", "#{value}", ?">>
+      _ -> "#{value}"
+    end
+  end
 
   defp to_comment(str) do
     String.split(str, "\n", trim: true) |> Enum.map(&add_comment/1) |> Enum.join("\n")
