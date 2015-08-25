@@ -8,6 +8,16 @@
       datatype: [:complex],
       default: []
     ],
+    "complex_another_list.*.id": [
+      to: "my_app.complex_another_list",
+      datatype: :integer,
+      default: :undefined
+    ],
+    "complex_another_list.*.dbid": [
+      to: "my_app.complex_another_list",
+      datatype: :integer,
+      default: :undefined
+    ],
     "complex_another_list.*.username": [
       to: "my_app.complex_another_list",
       datatype: :binary,
@@ -68,8 +78,10 @@
 
     "my_app.complex_another_list.*": fn _, {key, value_map}, acc ->
       [{key, %{
+        id: value_map[:id],
         username: value_map[:username],
-        age: value_map[:age]
+        age: value_map[:age],
+        dbid: value_map[:dbid]
        }} | acc]
     end,
 
