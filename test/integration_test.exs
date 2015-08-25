@@ -59,8 +59,8 @@ defmodule IntegrationTest do
     effective = Conform.Translate.to_config([], conf, schema)
     expected = [my_app:
                 [complex_another_list:
-                 [first: %{age: 20, username: "test_username1"},
-                  second: %{age: 40, username: "test_username2"}],
+                 [first: %{id: 100, dbid: 1, age: 20, username: "test_username1"},
+                  second: %{id: 101, dbid: 1, age: 40, username: "test_username2"}],
                  complex_list: [
                    buzz: %{age: 25, type: :person}, fido: %{age: 30, type: :dog}],
                  some_val: :foo, some_val2: 2.5,

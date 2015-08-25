@@ -285,7 +285,7 @@ defmodule Conform.Translate do
   defp get_in_complex(name, normalized_conf, [key]) do
     res = Enum.filter(normalized_conf,
       fn {complex_key, _} ->
-        {_, pattern} = Regex.compile(Atom.to_string(key))
+        {_, pattern} = key |> Atom.to_string |> String.replace(".*.", "\\.[\\w]+\\.") |> Regex.compile
         case Regex.run(pattern, Atom.to_string(complex_key)) do
           nil -> false
           _   -> true
