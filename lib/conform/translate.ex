@@ -75,8 +75,9 @@ defmodule Conform.Translate do
     schema = Keyword.delete(schema, :import)
     case schema do
       [mappings: mappings, translations: translations] ->
-        # get complex data types
+        # get complex data types, mappings already does not contain complex data types
         {mappings, complex} = get_complex(mappings, translations, normalized_conf)
+
         # Parse the .conf into a map of applications and their settings, applying translations where defined
         settings = Enum.reduce(mappings, complex,
           fn {key, mapping}, result ->
@@ -99,7 +100,6 @@ defmodule Conform.Translate do
             [app_name|setting_path] = Keyword.get(mapping, :to, key |> Atom.to_string)
                                       |> String.split(".")
                                       |> Enum.map(&String.to_atom/1)
-
             # Get the translation function is_function one is defined
             translated_value = case get_in(translations, [key]) do
               fun when is_function(fun) ->
@@ -131,7 +131,22 @@ defmodule Conform.Translate do
               case app == app_name do
                 true ->
                   Enum.reduce(complex_map, result, fn({complex_key, complex_val}, acc) ->
-                    update_in!(acc, [app_name|[complex_key] |> repath], complex_val)
+                    origin_complex_key = complex_key
+                    complex_key = String.split(complex_key |> to_string, ".") |> Enum.map(&String.to_atom/1)
+                    path = [app_name|complex_key |> repath]
+                    # we need to remove excess keys that we got in complex but have
+                    # ['Part1', 'Part2'....] form
+                    acc = case path do
+                     [_app_name, _to, arg] ->
+                       Enum.map(acc,
+                         fn({app, configuration}) ->
+                           configuration = Keyword.delete(configuration, origin_complex_key)
+                           {app, configuration}
+                         end)
+                     [_, _] ->
+                       acc
+                    end
+                    update_in!(acc, path, complex_val)
                   end)
                 false ->
                   []
@@ -227,7 +242,6 @@ defmodule Conform.Translate do
               end
           end
       end) |> List.flatten
-
       update_complex_acc(mapping, result, translations, data)
     end)
 
@@ -236,8 +250,10 @@ defmodule Conform.Translate do
 
   defp update_complex_acc([], result, _, _), do: result
   defp update_complex_acc([{from_key, map} | mapping], result, translations, data) do
-    to_key            = String.to_atom(Keyword.get(map, :to) <> ".*")
-    [app_name, path]  = Keyword.get(map, :to) |> String.split(".") |> Enum.map(&String.to_atom/1)
+    to_key = String.to_atom(Keyword.get(map, :to) <> ".*")
+    [app_name | path]  = Keyword.get(map, :to) |> String.split(".") |> Enum.map(&String.to_atom/1)
+    path = Enum.join(path, ".") |> String.to_atom
+
     built = build_complex(mapping, translations, data, from_key, to_key)
             |> List.flatten
             |> Enum.sort_by(fn {k, _} -> k end)
@@ -317,7 +333,6 @@ defmodule Conform.Translate do
         _   -> get_name_under_wildcard(pattern, complex_key)
       end
     end)
-
     get_complex_names(List.flatten([res | result]), complex, normalized_conf)
   end
 

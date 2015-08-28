@@ -62,7 +62,7 @@
       _mapping, level, acc when level in [:info, :error] ->
         acc ++ [lager_console_backend: level]
       _mapping, level, _ ->
-        IO.puts(<<"Unsupported console logging level: ", Kernel.to_string(level) :: binary>>)
+        IO.puts("Unsupported console logging level: #{level}")
         exit(1)
     end,
     "lager.handlers.file.error": fn
