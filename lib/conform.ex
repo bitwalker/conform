@@ -78,7 +78,7 @@ defmodule Conform do
     final = case Conform.Conf.from_file(options.conf) do
       {:error, reason} ->
         error reason
-        exit(:normal)
+        exit(:fatal)
       {:ok, conf} ->
         schema = Conform.Schema.load!(options.schema)
         # Read .config if exists
@@ -95,7 +95,7 @@ defmodule Conform do
                 Unable to parse config at #{path}
                 Check that the file exists and is in the correct format.
                 """
-                exit(:normal)
+                exit(:fatal)
             end
         end
     end
@@ -107,7 +107,7 @@ defmodule Conform do
         error """
         Unable to write configuration file #{options.write_to} with reason: #{reason}
         """
-        exit(:normal)
+        exit(:fatal)
     end
     # Print success message
     success "Generated #{options.write_to |> Path.basename} in #{options.write_to |> Path.dirname}"
