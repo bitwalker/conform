@@ -78,7 +78,7 @@ defmodule Conform do
     final = case Conform.Parse.file(options.conf) do
       {:error, reason} ->
         error reason
-        exit(:normal)
+        exit(:fatal)
       {:ok, conf} ->
         schema = options.schema |> Conform.Schema.load! |> Dict.delete(:import)
         arch_name = List.first(String.split(Path.basename(options.schema), ".")) <> ".schema.ez"
@@ -99,7 +99,7 @@ defmodule Conform do
                 Unable to parse config at #{path}
                 Check that the file exists and is in the correct format.
                 """
-                exit(:normal)
+                exit(:fatal)
             end
         end
     end
@@ -111,7 +111,7 @@ defmodule Conform do
         error """
         Unable to write configuration file #{options.write_to} with reason: #{reason}
         """
-        exit(:normal)
+        exit(:fatal)
     end
     # Print success message
     success "Generated #{options.write_to |> Path.basename} in #{options.write_to |> Path.dirname}"
