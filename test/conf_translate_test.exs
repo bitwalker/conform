@@ -170,6 +170,9 @@ defmodule ConfTranslateTest do
     # Provide documentation for my_app.sublist here.
     my_app.sublist = [opt1 = \"val1\", opt2 = \"val4\"], [opt1 = \"val3\", opt2 = \"val4\"]
 
+    # Provide documentation for my_app.rx_pattern here.
+    my_app.rx_pattern = ~r/[A-Z]+/
+
     """
     assert expected == conf
   end

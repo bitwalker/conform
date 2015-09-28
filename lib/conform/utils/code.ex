@@ -36,9 +36,10 @@ defmodule Conform.Utils.Code do
       false -> "\"#{string}\""
     end
   end
-  defp do_stringify(term) do
-    Macro.to_string(term)
+  defp do_stringify(%Regex{} = regex) do
+    "~r/" <> Regex.source(regex) <> "/"
   end
+  defp do_stringify(term), do: Macro.to_string(term)
 
   ##################
   # List Formatting

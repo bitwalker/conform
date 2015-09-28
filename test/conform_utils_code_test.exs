@@ -93,7 +93,10 @@ defmodule ConformCodeTest do
       * passive: it's going to be passive
       * active-debug: it's going to be active, with verbose debugging information
       \"\"\"
-    ]]
+    ],
+    "myapp.some_pattern": [
+       default: [~r/[A-Z]+/]
+      ]]
     """
 
     expected = """
@@ -114,6 +117,11 @@ defmodule ConformCodeTest do
         * passive: it's going to be passive
         * active-debug: it's going to be active, with verbose debugging information
         \"\"\"
+      ],
+      "myapp.some_pattern": [
+        default: [
+          ~r"[A-Z]+"
+        ]
       ]
     ]
     """ |> String.strip(?\n)

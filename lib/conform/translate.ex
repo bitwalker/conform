@@ -290,6 +290,9 @@ defmodule Conform.Translate do
   defp write_datatype([list: list_type], value, setting) do
     write_datatype([list: list_type], [value], setting)
   end
+  defp write_datatype(:binary, %Regex{} = regex, _setting) do
+    "~r/" <> Regex.source(regex) <> "/"
+  end
   defp write_datatype(:binary, value, _setting) do
     <<?", "#{value}", ?">>
   end

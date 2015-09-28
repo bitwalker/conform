@@ -90,4 +90,48 @@ defmodule IntegrationTest do
     assert effective == expected
   end
 
+  test "can generate default schema from config" do
+    config_path = Path.join(["test", "configs", "nested_list.exs"])
+    config = Mix.Config.read!(config_path) |> Macro.escape
+    schema = Conform.Schema.from_config(config)
+    result = Conform.Schema.stringify(schema, false)
+    assert """
+    [
+      extends: [],
+      import: [],
+      mappings: [
+        "my_app.sublist": [
+          commented: false,
+          datatype: [
+            list: [
+              list: {:atom, :binary}
+            ]
+          ],
+          default: [
+            [opt1: "val1", opt2: "val4"],
+            [opt1: "val3", opt2: "val4"]
+          ],
+          doc: "Provide documentation for my_app.sublist here.",
+          hidden: false,
+          to: "my_app.sublist"
+        ],
+        "my_app.rx_pattern": [
+          commented: false,
+          datatype: [
+            list: :binary
+          ],
+          default: [
+            ~r/[A-Z]+/
+          ],
+          doc: "Provide documentation for my_app.rx_pattern here.",
+          hidden: false,
+          to: "my_app.rx_pattern"
+        ]
+      ],
+      transforms: [],
+      validators: []
+    ]
+    """ |> String.strip(?\n) == result
+  end
+
 end
