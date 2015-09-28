@@ -22,6 +22,9 @@ defmodule Conform.Translate do
   """
   @spec to_conf([{atom, term}]) :: binary
   def to_conf(%Schema{mappings: mappings}) do
+    # Filter out hidden settings
+    mappings = Enum.filter(mappings, fn %Mapping{hidden: false} -> true; _ -> false end)
+    # Build conf string
     Enum.reduce mappings, "", fn %Mapping{name: key} = mapping, result ->
       # If the datatype of this mapping is an enum,
       # write out the allowed values
