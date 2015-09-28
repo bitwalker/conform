@@ -271,7 +271,7 @@ defmodule Conform.Schema do
   to be in it's quoted form.
   """
   @spec stringify([term]) :: binary
-  def stringify(schema) do
+  def stringify(schema, with_moduledoc \\ true) do
     string = if schema == Conform.Schema.empty do
       schema
       |> to_list
@@ -282,7 +282,12 @@ defmodule Conform.Schema do
       |> to_list
       |> Conform.Utils.Code.stringify
     end
-    "@moduledoc \"\"\"\n" <> @moduledoc <> "\"\"\"\n" <> string
+    case with_moduledoc do
+      true ->
+        "@moduledoc \"\"\"\n" <> @moduledoc <> "\"\"\"\n" <> string
+      false ->
+        string
+    end
   end
 
   defp to_list(%Schema{} = schema) do
