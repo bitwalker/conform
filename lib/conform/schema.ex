@@ -182,20 +182,18 @@ defmodule Conform.Schema do
       nil -> schema
       extends when is_list(extends) ->
         # Load schemas
-        schemas = Enum.map(extends, fn e ->
-          case valid_import?(e) do
-            true ->
-              case get_extends_schema_path(e) do
-                nil ->
-                  Conform.Utils.warn "Schema extends #{e}, but the schema for #{e} was not found."
-                  nil
-                schema_path ->
-                  load!(schema_path)
-              end
-            false ->
-              Conform.Utils.warn "Schema extends #{e}, but #{e} is either not an application or is not available."
-              nil
-          end
+        schemas = Enum.map(extends, fn
+          e when is_atom(e) ->
+            case get_extends_schema(e, path) do
+              nil ->
+                Conform.Utils.warn "Schema extends #{e}, but the schema for #{e} was not found."
+                nil
+              {schema_path, contents} ->
+                contents |> parse! |> from(schema_path)
+            end
+          e ->
+            Conform.Utils.warn "Invalid extends value: #{e}. Only application names as atoms are permitted."
+            nil
         end) |> Enum.filter(fn nil -> false; _ -> true end)
         # Merge them onto the base schema in the order provided
         Enum.reduce(schemas, schema, fn s, acc ->
@@ -387,8 +385,9 @@ defmodule Conform.Schema do
   end
   defp valid_import?(_), do: false
 
-  defp get_extends_schema_path(app_name) do
-    try do
+  defp get_extends_schema(app_name, src_schema_path) do
+    # Attempt loading from deps if Mix is available
+    schema_path = try do
       paths = Mix.Dep.children
               |> Enum.filter(fn %Mix.Dep{app: app} -> app == app_name end)
               |> Enum.map(fn %Mix.Dep{opts: opts} ->
@@ -396,32 +395,58 @@ defmodule Conform.Schema do
               end)
               |> Enum.filter(fn nil -> false; _ -> true end)
       case paths do
-        [] -> nil
-        [app_path] ->
-          path = Path.join([app_path, "config", "#{app_name}.schema.exs"])
-          case File.exists?(path) do
-            true  -> path
-            false -> nil
-          end
+        []         -> nil
+        [app_path] -> Path.join([app_path, "config", "#{app_name}.schema.exs"])
       end
     catch
       _,_ -> nil
     rescue
       _ -> nil
-    else
+    end
+    # Next try locating by application
+    schema_path = case schema_path do
       nil ->
         case :code.lib_dir(app_name) do
           {:error, _} -> nil
           path when is_list(path) ->
             path = List.to_string(path)
-            schema_path = Path.join([path, "config", "#{app_name}.schema.exs"])
-            case File.exists?(schema_path) do
-              true  -> schema_path
-              false -> nil
+            case File.exists?(path <> ".ez") do
+              true  -> Path.join([path <> ".ez", "#{app_name}", "config", "#{app_name}.schema.exs"])
+              false -> Path.join([path, "config", "#{app_name}.schema.exs"])
             end
         end
       path when is_binary(path) ->
         path
+    end
+    schema_path = case schema_path == nil || File.exists?(schema_path) == false do
+      true ->
+        # If that fails, try loading from archive, if present
+        archive_path = String.replace(src_schema_path, ".exs", ".ez")
+        case File.exists?(archive_path) do
+          false -> nil
+          true  ->
+            case :erl_prim_loader.list_dir('#{archive_path}') do
+              :error -> nil
+              {:ok, apps} ->
+                case '#{app_name}' in apps do
+                  true  -> Path.join([archive_path, "#{app_name}", "config", "#{app_name}.schema.exs"])
+                  false -> nil
+                end
+            end
+        end
+      _ -> schema_path
+    end
+    case schema_path do
+      nil -> nil
+      schema_path when is_binary(schema_path) ->
+        case File.exists?(schema_path) do
+          true  -> {schema_path, File.read!(schema_path)}
+          false ->
+            case :erl_prim_loader.get_file('#{schema_path}') do
+              :error             -> nil
+              {:ok, contents, _} -> {schema_path, contents}
+            end
+        end
     end
   end
 

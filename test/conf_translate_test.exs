@@ -72,9 +72,12 @@ defmodule ConfTranslateTest do
           Mix.Task.run("conform.archive", [schema_path])
         end)
 
-      expected = [{:test, [{:another_val,3}, {:debug_level,:info}, {:env, :prod}]}]
+      expected = [
+        fake_app: [greeting: "hi!"],
+        test: [another_val: 3, debug_level: :info, env: :prod]
+      ]
 
-      :ok = Mix.Task.run("escript.build", [path: script])
+      _ = Mix.Task.run("escript.build", [path: script])
       _ = :os.cmd("#{script} --schema #{schema_path} --conf #{conf_path} --output-dir #{sys_config_path}" |> to_char_list)
       {:ok, [sysconfig]} = :file.consult(sys_config_path <> "/sys.config")
       assert Path.basename(zip_path) == "test.schema.ez"
