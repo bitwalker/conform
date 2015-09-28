@@ -13,8 +13,8 @@ defmodule Mix.Tasks.Conform.Archive do
     end
 
     raw_schema = File.read!(schema_path) |> Conform.Schema.parse!
-    imports = Keyword.get(raw_schema, :import)
-    extends = Keyword.get(raw_schema, :extends)
+    imports = Keyword.get(raw_schema, :import, [])
+    extends = Keyword.get(raw_schema, :extends, [])
     case {imports, extends} do
       {[], []} -> {:ok, "", []}
       {_, _}   ->
