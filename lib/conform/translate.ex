@@ -48,8 +48,7 @@ defmodule Conform.Translate do
         _ ->
           <<result::binary, comments::binary, ?\n>>
       end
-      default = mapping.default || nil
-      case default do
+      case mapping.default do
         nil ->
           <<result::binary, "# #{key} = \n\n">>
         default ->
