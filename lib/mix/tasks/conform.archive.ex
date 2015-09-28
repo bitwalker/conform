@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Conform.Archive do
         {"#{dirname}/_build/#{Mix.env}/lib", "#{dirname}/deps"}
     end
 
-    raw_schema = Conform.Schema.parse!(schema_path)
+    raw_schema = File.read!(schema_path) |> Conform.Schema.parse!
     imports = Keyword.get(raw_schema, :import)
     extends = Keyword.get(raw_schema, :extends)
     case {imports, extends} do

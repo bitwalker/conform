@@ -82,8 +82,8 @@ defmodule Conform.Schema do
   Returns {:ok, quoted} | {:error, {line, error, details}}
   """
   @spec parse(String.t) :: {:ok, term} | {:error, {integer, binary, binary}}
-  def parse(path) when is_binary(path) do
-    case File.read!(path) |> Code.string_to_quoted do
+  def parse(binary) when is_binary(binary) do
+    case Code.string_to_quoted(binary) do
       {:ok, {:__block__, _, [_, quoted]}} -> {:ok, quoted}
       {:ok, quoted} -> {:ok, quoted}
       {:error, _} = err -> err
@@ -95,8 +95,8 @@ defmodule Conform.Schema do
   Returns the quoted terms or raises SchemaError on failure.
   """
   @spec parse!(String.t) :: term | no_return
-  def parse!(path) when is_binary(path) do
-    case parse(path) do
+  def parse!(binary) when is_binary(binary) do
+    case parse(binary) do
       {:ok, quoted} -> quoted
       {:error, {line, error, details}} ->
         raise SchemaError, message: "Invalid schema at line #{line}: #{error}#{details}."
@@ -110,7 +110,7 @@ defmodule Conform.Schema do
   @spec load!(binary | atom) :: schema
   def load!(path) when is_binary(path) do
     if File.exists?(path) do
-      from(parse!(path), path)
+      path |> File.read! |> parse! |> from(path)
     else
       raise SchemaError, message: "Schema at #{path} doesn't exist!"
     end
@@ -138,41 +138,6 @@ defmodule Conform.Schema do
     load_archive(archive_path)
     # Build schema
     schema = %Schema{}
-    # First thing we need to do is determine if we are extending any schemas in
-    # dependencies of this application. `extends` should be a list of application names
-    # as atoms. Given an application, we will fetch it's schema, load it, and merge it
-    # on to our base schema. Definitions in this schema will then override those which are
-    # present in the schemas being extended.
-    schema = case Keyword.get(quoted, :extends) do
-      nil -> schema
-      extends when is_list(extends) ->
-        # Load schemas
-        schemas = Enum.map(extends, fn e ->
-          case valid_import?(e) do
-            true ->
-              case get_extends_schema_path(e) do
-                nil ->
-                  Conform.Utils.warn "Schema extends #{e}, but the schema for #{e} was not found."
-                  nil
-                schema_path ->
-                  load!(schema_path)
-              end
-            false ->
-              Conform.Utils.warn "Schema extends #{e}, but #{e} is either not an application or is not available."
-              nil
-          end
-        end) |> Enum.filter(fn nil -> false; _ -> true end)
-        # Merge them onto the base schema in the order provided
-        Enum.reduce(schemas, schema, fn s, acc ->
-          s = Dict.drop(s, [:extends])
-          Dict.merge(acc, s, fn _, v1, v2 ->
-              case Keyword.keyword?(v1) && Keyword.keyword?(v2) do
-                true  -> Keyword.merge(v1, v2) |> Enum.map(fn _, v -> put_in(v, [:persist], false) end)
-                false -> v1 |> Enum.concat(v2) |> Enum.uniq
-              end
-          end)
-        end)
-    end
     # Get and validate imports
     schema = case Keyword.get(quoted, :import) do
       nil -> schema
@@ -202,11 +167,50 @@ defmodule Conform.Schema do
     end
     # Get and validate validators
     global_validators = Conform.Schema.Validator.load
-    case Keyword.get(quoted, :validators) do
+    schema = case Keyword.get(quoted, :validators) do
       nil -> %{schema | :validators => global_validators}
       validators when is_list(validators) ->
         user_defined = Enum.map(validators, &Conform.Schema.Validator.from_quoted/1)
         %{schema | :validators => user_defined ++ global_validators}
+    end
+    # Determine if we are extending any schemas in
+    # dependencies of this application. `extends` should be a list of application names
+    # as atoms. Given an application, we will fetch it's schema, load it, and merge it
+    # on to our base schema. Definitions in this schema will then override those which are
+    # present in the schemas being extended.
+    case Keyword.get(quoted, :extends) do
+      nil -> schema
+      extends when is_list(extends) ->
+        # Load schemas
+        schemas = Enum.map(extends, fn e ->
+          case valid_import?(e) do
+            true ->
+              case get_extends_schema_path(e) do
+                nil ->
+                  Conform.Utils.warn "Schema extends #{e}, but the schema for #{e} was not found."
+                  nil
+                schema_path ->
+                  load!(schema_path)
+              end
+            false ->
+              Conform.Utils.warn "Schema extends #{e}, but #{e} is either not an application or is not available."
+              nil
+          end
+        end) |> Enum.filter(fn nil -> false; _ -> true end)
+        # Merge them onto the base schema in the order provided
+        Enum.reduce(schemas, schema, fn s, acc ->
+          s = Map.drop(s, [:extends])
+          Map.merge(acc, s, fn _, v1, v2 ->
+            cond do
+              Keyword.keyword?(v1) && Keyword.keyword?(v2) ->
+                Keyword.merge(v1, v2) |> Enum.map(fn _, v -> put_in(v, [:persist], false) end)
+              is_list(v1) && is_list(v2) ->
+                v1 |> Enum.concat(v2) |> Enum.uniq
+              true ->
+                v2
+            end
+          end)
+        end)
     end
   end
 
@@ -384,15 +388,40 @@ defmodule Conform.Schema do
   defp valid_import?(_), do: false
 
   defp get_extends_schema_path(app_name) do
-    case :code.lib_dir(app_name) do
-      {:error, _} -> nil
-      path when is_list(path) ->
-        path = List.to_string(path)
-        schema_path = Path.join([path, "config", "#{app_name}.schema.exs"])
-        case File.exists?(schema_path) do
-          true  -> schema_path
-          false -> nil
+    try do
+      paths = Mix.Dep.children
+              |> Enum.filter(fn %Mix.Dep{app: app} -> app == app_name end)
+              |> Enum.map(fn %Mix.Dep{opts: opts} ->
+                Keyword.get(opts, :dest, Keyword.get(opts, :path))
+              end)
+              |> Enum.filter(fn nil -> false; _ -> true end)
+      case paths do
+        [] -> nil
+        [app_path] ->
+          path = Path.join([app_path, "config", "#{app_name}.schema.exs"])
+          case File.exists?(path) do
+            true  -> path
+            false -> nil
+          end
+      end
+    catch
+      _,_ -> nil
+    rescue
+      _ -> nil
+    else
+      nil ->
+        case :code.lib_dir(app_name) do
+          {:error, _} -> nil
+          path when is_list(path) ->
+            path = List.to_string(path)
+            schema_path = Path.join([path, "config", "#{app_name}.schema.exs"])
+            case File.exists?(schema_path) do
+              true  -> schema_path
+              false -> nil
+            end
         end
+      path when is_binary(path) ->
+        path
     end
   end
 
