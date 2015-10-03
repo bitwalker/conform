@@ -17,9 +17,7 @@ if Code.ensure_loaded?(ReleaseManager.Plugin) do
     alias ReleaseManager.Utils
 
     def before_release(%Config{name: app, version: version}) do
-      empty_schema   = Conform.Schema.empty
       relx_conf_path = Utils.rel_file_dest_path("relx.config")
-      schema_dest    = Utils.rel_file_dest_path("#{app}.schema.exs")
       conf_src       = Path.join([File.cwd!, "config", "#{app}.conf"])
 
       debug "Conform: Loading schema..."
