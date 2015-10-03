@@ -1,4 +1,6 @@
 [
+  extends: [:foo],
+  import: [:foo],
   mappings: [
     "log.error.file": [
       to:       "log.error_file",
@@ -68,30 +70,36 @@
       to: "myapp.Custom.Enum",
       datatype: [{Conform.Types.Enum, [:dev, :prod, :test]}],
       default: :dev
+     ],
+     "myapp.volume": [
+       doc: "The volume of some thing. Valid values are 1-11.",
+       to: "myapp.volume",
+       datatype: :integer,
+       default: 1,
+       validators: [{Conform.Validators.RangeValidator, 1..11}]
      ]
   ],
 
-  translations: [
-    "myapp.another_val": fn
-      _, :foo -> :bar
-      _mapping, val ->
-        case val do
-          :active ->
-            data = %{log: :warn}
-            more_data = %{data | :log => :warn}
-            {:on, [data: data]}
-          :'active-debug' -> {:on, [debug: true]}
-          :passive        -> {:off, []}
-          _               -> {:on, []}
-        end
+  transforms: [
+    "myapp.another_val": fn conf ->
+      case Conform.Conf.get(conf, "myapp.another_val") do
+        [{_, val}] ->
+          case val do
+            :active ->
+              data = %{log: :warn}
+              more_data = %{data | :log => :warn}
+              {:on, [data: data]}
+            :'active-debug' -> {:on, [debug: true]}
+            :passive        -> {:off, []}
+            _               -> {:on, []}
+          end
+      end
     end,
-    "myapp.some_val": fn
-      _, :foo -> :bar
-      _mapping, val ->
-        case val do
-          :foo -> :bar
-          _    -> val
-        end
+    "myapp.some_val": fn conf ->
+      case Conform.Conf.get(conf, "myapp.some_val") do
+        [{_, :foo}] -> :bar
+        [{_, val}]  -> val
+      end
     end
   ]
 ]

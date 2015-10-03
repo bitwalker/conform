@@ -1,7 +1,7 @@
 [
   mappings: [
     "lager.handlers.console.level": [
-      to: "lager.handlers",
+      to: "lager.handlers.lager_console_backend.level",
       datatype: [enum: [:info, :error]],
       default: :info,
       doc: """
@@ -9,7 +9,7 @@
       """
     ],
     "lager.handlers.file.error": [
-      to: "lager.handlers",
+      to: "lager.handlers.lager_file_backend.error",
       datatype: :binary,
       default: "/var/log/error.log",
       doc: """
@@ -17,7 +17,7 @@
       """
     ],
     "lager.handlers.file.info": [
-      to: "lager.handlers",
+      to: "lager.handlers.lager_file_backend.info",
       datatype: :binary,
       default: "/var/log/console.log",
       doc: """
@@ -31,30 +31,21 @@
       doc: "Seriously, super important."
     ]
   ],
-  translations: [
-    "lager.handlers.console.level": fn
-      _mapping, level, nil when level in [:info, :error] ->
-          [lager_console_backend: level]
-      _mapping, level, acc when level in [:info, :error] ->
-          acc ++ [lager_console_backend: level]
-      _mapping, level, _ ->
-        IO.puts("Unsupported console logging level: #{level}")
-        exit(1)
-    end,
-    "lager.handlers.file.error": fn 
-      _mapping, path, nil ->
-        [lager_file_backend: [file: path, level: :error]]
-      _mapping, path, acc ->
-        acc ++ [lager_file_backend: [file: path, level: :error]]
-    end,
-    "lager.handlers.file.info": fn
-      _mapping, path, nil ->
-        [lager_file_backend: [file: path, level: :info]]
-      _mapping, path, acc ->
-        acc ++ [lager_file_backend: [file: path, level: :info]]
-    end,
-    "myapp.some.important.setting": fn _mapping, val, _ ->
-      val
+  transforms: [
+    "lager.handlers": fn conf ->
+      file_handlers = case Conform.Conf.find(conf, "lager.handlers.lager_file_backend.$key") do
+        [] -> []
+        levels when is_list(levels) ->
+          Enum.map(levels, fn {[_, _, _, level], path} ->
+            {:lager_file_backend, [level: List.to_atom(level), file: path]}
+          end)
+      end
+      console_handler = case Conform.Conf.get(conf, "lager.handlers.lager_console_backend.level") do
+        []              -> []
+        [{path, level}] -> [lager_console_backend: level]
+      end
+      Conform.Conf.remove(conf, "lager.handlers")
+      console_handler ++ file_handlers
     end
   ]
 ]

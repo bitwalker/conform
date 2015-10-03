@@ -10,4 +10,7 @@ config :my_app,
       opt1: "val3",
       opt2: "val4"
     ]
+  ],
+  rx_pattern: [
+    ~r/[A-Z]+/
   ]

@@ -93,7 +93,10 @@ defmodule ConformCodeTest do
       * passive: it's going to be passive
       * active-debug: it's going to be active, with verbose debugging information
       \"\"\"
-    ]]
+    ],
+    "myapp.some_pattern": [
+       default: [~r/[A-Z]+/]
+      ]]
     """
 
     expected = """
@@ -114,6 +117,11 @@ defmodule ConformCodeTest do
         * passive: it's going to be passive
         * active-debug: it's going to be active, with verbose debugging information
         \"\"\"
+      ],
+      "myapp.some_pattern": [
+        default: [
+          ~r"[A-Z]+"
+        ]
       ]
     ]
     """ |> String.strip(?\n)
@@ -216,7 +224,7 @@ defmodule ConformCodeTest do
           {:baz, :qux} ->
             :bazqux
           {^x, ^y} ->
-            result = <<Kernel.to_string(x) :: binary, Kernel.to_string(y) :: binary>> |> String.to_atom()
+            result = \"\#{x}\#{y}\" |> String.to_atom()
             result
         end
       end

@@ -75,25 +75,21 @@ defmodule Conform do
 
   defp process(%Options{} = options) do
     # Read .conf and .schema.exs
-    final = case Conform.Parse.file(options.conf) do
+    final = case Conform.Conf.from_file(options.conf) do
       {:error, reason} ->
         error reason
         exit(:fatal)
       {:ok, conf} ->
-        schema = options.schema |> Conform.Schema.load! |> Dict.delete(:import)
-        arch_name = List.first(String.split(Path.basename(options.schema), ".")) <> ".schema.ez"
-        # load all imports from archive
-        load_imports(Path.dirname(options.schema) <> "/" <> arch_name)
+        schema = Conform.Schema.load!(options.schema)
         # Read .config if exists
         case options.config do
           nil  ->
-            Conform.Translate.to_config([], conf, schema)
+            Conform.Translate.to_config(schema, [], conf)
           path ->
             # Merge .config if exists and can be parsed
-            case Conform.Config.read(path) do
+            case Conform.SysConfig.read(path) do
               {:ok, [config]} ->
-                translated = Conform.Translate.to_config(config, conf, schema)
-                Conform.Config.merge(config, translated)
+                Conform.Translate.to_config(schema, config, conf)
               {:error, _} ->
                 error """
                 Unable to parse config at #{path}
@@ -104,7 +100,7 @@ defmodule Conform do
         end
     end
     # Write final .config to options.write_to
-    case Conform.Config.write(options.write_to, final) do
+    case Conform.SysConfig.write(options.write_to, final) do
       :ok ->
         :ok
       {:error, reason} ->
@@ -124,26 +120,4 @@ defmodule Conform do
     IO.ANSI.green <> message <> IO.ANSI.reset |> IO.puts
   end
 
-  defp load_imports(arch_path) do
-    case File.exists?(arch_path) do
-      true ->
-        {:ok, [_ | zip_files]} = :zip.list_dir(arch_path |> to_char_list)
-        apps = Enum.map(zip_files, fn({:zip_file, path, _, _, _, _}) ->
-          path = to_string(path)
-          case :filename.extension(path) == ".app" do
-            true ->
-              [deps_app_path, _] = String.split(path, "ebin")
-              Path.basename(deps_app_path)
-            false ->
-              []
-          end
-        end) |> :lists.flatten
-
-        Enum.each(apps, fn(app) ->
-          Code.append_path(to_string(arch_path) <> "/" <> app <> "/ebin")
-        end)
-      false ->
-        :ok
-    end
-  end
 end

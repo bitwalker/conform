@@ -1,6 +1,4 @@
 [
-  import: [
-  ],
   mappings: [
     "dep.some_val": [
       to: "dep.some_val",
@@ -9,20 +7,20 @@
       doc: "Just a value"
     ],
     "lager.handlers.console.level": [
-      to: "lager.handlers",
-      datatype: [
-        enum: [
-          :info,
-          :error
-        ]
-      ],
+      to: "lager.handlers.lager_console_backend",
+      datatype: [enum: [:info, :error]],
       default: :info,
       doc: """
       Choose the logging level for the console backend.
       """
     ],
+    "lager.handlers.$backend": [
+      to: "lager.handlers.lager_$backend_backend",
+      datatype: :complex,
+      default: []
+    ],
     "lager.handlers.file.error": [
-      to: "lager.handlers",
+      to: "lager.handlers.file.error",
       datatype: :binary,
       default: "/var/log/error.log",
       doc: """
@@ -30,7 +28,7 @@
       """
     ],
     "lager.handlers.file.info": [
-      to: "lager.handlers",
+      to: "lager.handlers.file.info",
       datatype: :binary,
       default: "/var/log/console.log",
       doc: """
@@ -39,46 +37,18 @@
     ],
     "myapp.some.important.setting": [
       to: "myapp.some.important.setting",
-      datatype: [
-        list: :ip
-      ],
-      default: [
-        {"127.0.0.1", "8001"}
-      ],
+      datatype: [list: :ip],
+      default: [{"127.0.0.1", "8001"}],
       doc: "Seriously, super important."
     ]
   ],
-  translations: [
-    "dep.some_val": fn _mapping, val ->
-      if File.exists?(val) do
-        "success"
-      else
-        "n/a"
+  transforms: [
+    "dep.some_val": fn conf ->
+      exists? = case Conform.Conf.get(conf, "dep.some_val") do
+        [{_, path}] when is_binary(path) -> File.exists?(path)
+        _ -> false
       end
-    end,
-    "lager.handlers.console.level": fn
-      _mapping, level, nil when level in [:info, :error] ->
-        [lager_console_backend: level]
-      _mapping, level, acc when level in [:info, :error] ->
-        acc ++ [lager_console_backend: level]
-      _mapping, level, _ ->
-        IO.puts(<<"Unsupported console logging level: ", Kernel.to_string(level) :: binary>>)
-        exit(1)
-    end,
-    "lager.handlers.file.error": fn
-      _mapping, path, nil ->
-        [lager_file_backend: [file: path, level: :error]]
-      _mapping, path, acc ->
-        acc ++ [lager_file_backend: [file: path, level: :error]]
-    end,
-    "lager.handlers.file.info": fn
-      _mapping, path, nil ->
-        [lager_file_backend: [file: path, level: :info]]
-      _mapping, path, acc ->
-        acc ++ [lager_file_backend: [file: path, level: :info]]
-    end,
-    "myapp.some.important.setting": fn _mapping, val, _ ->
-      val
+      if exists?, do: "success", else: "n/a"
     end
   ]
 ]
