@@ -61,7 +61,7 @@ if Code.ensure_loaded?(ReleaseManager.Plugin) do
         # Persist relx.config
         Utils.write_terms(relx_conf_path, updated)
 
-        info "Conform: Done!"
+        debug "Conform: Done!"
       end
     end
 
