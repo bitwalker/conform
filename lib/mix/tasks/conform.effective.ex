@@ -146,11 +146,6 @@ defmodule Mix.Tasks.Conform.Effective do
     end
     options = Map.put(options, :output, output)
 
-    # Make sure env is a valid value
-    unless env in [:test, :dev, :prod] do
-      error "The value provided for --env is not a valid environment"
-      exit(:normal)
-    end
     %{:env => env, :options => options}
   end
 end
