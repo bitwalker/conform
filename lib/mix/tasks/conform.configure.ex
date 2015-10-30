@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Conform.Configure do
   @moduledoc """
   Create a .conf file based on your projects configuration schema.
   """
-  @shortdoc "Create a .conf file from schema and project config."
+  @shortdoc "Create a .conf file from schema and project config"
 
   use    Mix.Task
   import Conform.Utils

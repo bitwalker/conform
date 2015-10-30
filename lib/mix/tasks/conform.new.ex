@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Conform.New do
   your apps config from the schema, see the help for `mix conform.configure`.
 
   """
-  @shortdoc "Create a new .schema.exs file for configuring your app with conform."
+  @shortdoc "Create a new .schema.exs file for configuring your app with conform"
 
   use    Mix.Task
   import Conform.Utils
