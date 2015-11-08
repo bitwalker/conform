@@ -36,7 +36,7 @@ line <- ((setting / comment / ws+) (crlf / eof)) / crlf %{
 
 %% A setting is a key and a value, joined by =, with surrounding
 %% whitespace ignored.
-setting <- ws* key ws* "=" ws* ((list_value / string_value / value) (", " / ",")?)+ ws* comment? %{
+setting <- ws* key ws* "=" ws* ((list_value / double_quote_value / value) (", " / ",")?)+ ws* comment? %{
     [ _, Key, _, _Eq, _, Value, _, _ ] = Node,
     ParsedValue = case lists:map(fun([V, _]) -> V end, Value) of
       [SingleVal]             -> SingleVal;
@@ -46,13 +46,13 @@ setting <- ws* key ws* "=" ws* ((list_value / string_value / value) (", " / ",")
 %};
 
 %% A key is a series of dot-separated identifiers.
-key <- head:(word / string_value) tail:("." (word / string_value))* %{
+key <- head:(word / double_quote_value) tail:("." (word / double_quote_value))* %{
     [{head, H}, {tail, T}] = Node,
     [unicode:characters_to_list(H)| [ unicode:characters_to_list(W) || [_, W] <- T]]
 %};
 
 %% A list of values surrounded by brackets, keys are always atoms
-list_value <- (!((ws* crlf) / comment) "[" (!"[" (word ws* "=" ws* ((string_value / value_in_list) (", " / ",")?))+) "]") %{
+list_value <- (!((ws* crlf) / comment) "[" (!"[" (word ws* "=" ws* ((double_quote_value / value_in_list) (", " / ",")?))+) "]") %{
     [_, _OpenBracket, [_, Elems], _CloseBracket] = Node,
     Pairs = lists:map(fun([Key, _, _Eq, _, [Value, _]]) ->
         Res = {erlang:list_to_atom(Key), Value},
@@ -62,14 +62,16 @@ list_value <- (!((ws* crlf) / comment) "[" (!"[" (word ws* "=" ws* ((string_valu
 %};
 
 %% A value surrounded by double quotes
-string_value <- (!((ws* crlf) / comment) '"' (!'"' ("\\\\" / '\\"' / .))* ("\r"? "\n")? '"')+ %{
-    case unicode:characters_to_binary(Node, utf8, latin1) of
-        {_Status, _Begining, _Rest} ->
-            {error, ?FMT("Error converting value on line #~p to latin1", [line(Idx)])};
-        Bin ->
-            Len      = erlang:byte_size(Bin),
-            Unquoted = erlang:binary_part(Bin, {1, Len - 2}),
-            binary_to_list(Unquoted)
+double_quote_value <- (!((ws* crlf) / comment) '"' ("\\\\" / '\\"' / (!'"' .))* ("\r"? "\n")? '"')+ %{
+    case unicode:characters_to_list(Node) of
+      {_Status, _Begining, _Rest} ->
+          {error, ?FMT("Error converting value on line #~p to latin1", [line(Idx)])};
+      Chars ->
+        Unescaped = unescape_double_quotes(Chars),
+        Bin = unicode:characters_to_binary(Unescaped, utf8, latin1),
+        Len      = erlang:byte_size(Bin),
+        Unquoted = erlang:binary_part(Bin, {1, Len - 2}),
+        binary_to_list(Unquoted)
     end
 %};
 
@@ -170,5 +172,11 @@ unescape_dots([$\\,$.|Rest]) ->
 unescape_dots([]) -> [];
 unescape_dots([C|Rest]) ->
     [C|unescape_dots(Rest)].
+
+unescape_double_quotes([$\\,$"|Rest]) ->
+    [$"|unescape_double_quotes(Rest)];
+unescape_double_quotes([]) -> [];
+unescape_double_quotes([C|Rest]) ->
+    [C|unescape_double_quotes(Rest)].
 
 %}

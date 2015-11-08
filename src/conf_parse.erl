@@ -70,6 +70,12 @@ unescape_dots([]) -> [];
 unescape_dots([C|Rest]) ->
     [C|unescape_dots(Rest)].
 
+unescape_double_quotes([$\\,$"|Rest]) ->
+    [$"|unescape_double_quotes(Rest)];
+unescape_double_quotes([]) -> [];
+unescape_double_quotes([C|Rest]) ->
+    [C|unescape_double_quotes(Rest)].
+
 
 -spec file(file:name()) -> any().
 file(Filename) -> case file:read_file(Filename) of {ok,Bin} -> parse(Bin); Err -> Err end.
@@ -101,7 +107,7 @@ parse(Input) when is_binary(Input) ->
 
 -spec 'setting'(input(), index()) -> parse_result().
 'setting'(Input, Index) ->
-  p(Input, Index, 'setting', fun(I,D) -> (p_seq([p_zero_or_more(fun 'ws'/2), fun 'key'/2, p_zero_or_more(fun 'ws'/2), p_string(<<"=">>), p_zero_or_more(fun 'ws'/2), p_one_or_more(p_seq([p_choose([fun 'list_value'/2, fun 'string_value'/2, fun 'value'/2]), p_optional(p_choose([p_string(<<",\s">>), p_string(<<",">>)]))])), p_zero_or_more(fun 'ws'/2), p_optional(fun 'comment'/2)]))(I,D) end, fun(Node, _Idx) ->
+  p(Input, Index, 'setting', fun(I,D) -> (p_seq([p_zero_or_more(fun 'ws'/2), fun 'key'/2, p_zero_or_more(fun 'ws'/2), p_string(<<"=">>), p_zero_or_more(fun 'ws'/2), p_one_or_more(p_seq([p_choose([fun 'list_value'/2, fun 'double_quote_value'/2, fun 'value'/2]), p_optional(p_choose([p_string(<<",\s">>), p_string(<<",">>)]))])), p_zero_or_more(fun 'ws'/2), p_optional(fun 'comment'/2)]))(I,D) end, fun(Node, _Idx) ->
     [ _, Key, _, _Eq, _, Value, _, _ ] = Node,
     ParsedValue = case lists:map(fun([V, _]) -> V end, Value) of
       [SingleVal]             -> SingleVal;
@@ -112,14 +118,14 @@ parse(Input) when is_binary(Input) ->
 
 -spec 'key'(input(), index()) -> parse_result().
 'key'(Input, Index) ->
-  p(Input, Index, 'key', fun(I,D) -> (p_seq([p_label('head', p_choose([fun 'word'/2, fun 'string_value'/2])), p_label('tail', p_zero_or_more(p_seq([p_string(<<".">>), p_choose([fun 'word'/2, fun 'string_value'/2])])))]))(I,D) end, fun(Node, _Idx) ->
+  p(Input, Index, 'key', fun(I,D) -> (p_seq([p_label('head', p_choose([fun 'word'/2, fun 'double_quote_value'/2])), p_label('tail', p_zero_or_more(p_seq([p_string(<<".">>), p_choose([fun 'word'/2, fun 'double_quote_value'/2])])))]))(I,D) end, fun(Node, _Idx) ->
     [{head, H}, {tail, T}] = Node,
     [unicode:characters_to_list(H)| [ unicode:characters_to_list(W) || [_, W] <- T]]
  end).
 
 -spec 'list_value'(input(), index()) -> parse_result().
 'list_value'(Input, Index) ->
-  p(Input, Index, 'list_value', fun(I,D) -> (p_seq([p_not(p_choose([p_seq([p_zero_or_more(fun 'ws'/2), fun 'crlf'/2]), fun 'comment'/2])), p_string(<<"[">>), p_seq([p_not(p_string(<<"[">>)), p_one_or_more(p_seq([fun 'word'/2, p_zero_or_more(fun 'ws'/2), p_string(<<"=">>), p_zero_or_more(fun 'ws'/2), p_seq([p_choose([fun 'string_value'/2, fun 'value_in_list'/2]), p_optional(p_choose([p_string(<<",\s">>), p_string(<<",">>)]))])]))]), p_string(<<"]">>)]))(I,D) end, fun(Node, _Idx) ->
+  p(Input, Index, 'list_value', fun(I,D) -> (p_seq([p_not(p_choose([p_seq([p_zero_or_more(fun 'ws'/2), fun 'crlf'/2]), fun 'comment'/2])), p_string(<<"[">>), p_seq([p_not(p_string(<<"[">>)), p_one_or_more(p_seq([fun 'word'/2, p_zero_or_more(fun 'ws'/2), p_string(<<"=">>), p_zero_or_more(fun 'ws'/2), p_seq([p_choose([fun 'double_quote_value'/2, fun 'value_in_list'/2]), p_optional(p_choose([p_string(<<",\s">>), p_string(<<",">>)]))])]))]), p_string(<<"]">>)]))(I,D) end, fun(Node, _Idx) ->
     [_, _OpenBracket, [_, Elems], _CloseBracket] = Node,
     Pairs = lists:map(fun([Key, _, _Eq, _, [Value, _]]) ->
         Res = {erlang:list_to_atom(Key), Value},
@@ -128,16 +134,18 @@ parse(Input) when is_binary(Input) ->
     Pairs
  end).
 
--spec 'string_value'(input(), index()) -> parse_result().
-'string_value'(Input, Index) ->
-  p(Input, Index, 'string_value', fun(I,D) -> (p_one_or_more(p_seq([p_not(p_choose([p_seq([p_zero_or_more(fun 'ws'/2), fun 'crlf'/2]), fun 'comment'/2])), p_string(<<"\"">>), p_zero_or_more(p_seq([p_not(p_string(<<"\"">>)), p_choose([p_string(<<"\\\\">>), p_string(<<"\\\"">>), p_anything()])])), p_optional(p_seq([p_optional(p_string(<<"\r">>)), p_string(<<"\n">>)])), p_string(<<"\"">>)])))(I,D) end, fun(Node, Idx) ->
-    case unicode:characters_to_binary(Node, utf8, latin1) of
-        {_Status, _Begining, _Rest} ->
-            {error, ?FMT("Error converting value on line #~p to latin1", [line(Idx)])};
-        Bin ->
-            Len      = erlang:byte_size(Bin),
-            Unquoted = erlang:binary_part(Bin, {1, Len - 2}),
-            binary_to_list(Unquoted)
+-spec 'double_quote_value'(input(), index()) -> parse_result().
+'double_quote_value'(Input, Index) ->
+  p(Input, Index, 'double_quote_value', fun(I,D) -> (p_one_or_more(p_seq([p_not(p_choose([p_seq([p_zero_or_more(fun 'ws'/2), fun 'crlf'/2]), fun 'comment'/2])), p_string(<<"\"">>), p_zero_or_more(p_choose([p_string(<<"\\\\">>), p_string(<<"\\\"">>), p_seq([p_not(p_string(<<"\"">>)), p_anything()])])), p_optional(p_seq([p_optional(p_string(<<"\r">>)), p_string(<<"\n">>)])), p_string(<<"\"">>)])))(I,D) end, fun(Node, Idx) ->
+    case unicode:characters_to_list(Node) of
+      {_Status, _Begining, _Rest} ->
+          {error, ?FMT("Error converting value on line #~p to latin1", [line(Idx)])};
+      Chars ->
+        Unescaped = unescape_double_quotes(Chars),
+        Bin = unicode:characters_to_binary(Unescaped, utf8, latin1),
+        Len      = erlang:byte_size(Bin),
+        Unquoted = erlang:binary_part(Bin, {1, Len - 2}),
+        binary_to_list(Unquoted)
     end
  end).
 
