@@ -279,6 +279,7 @@ defmodule Conform.Schema do
       |> to_list
       |> Inspect.Algebra.to_doc(%Inspect.Opts{pretty: true})
       |> Inspect.Algebra.format(10)
+      |> Enum.join
     else
       schema
       |> to_list
