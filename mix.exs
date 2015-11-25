@@ -29,7 +29,7 @@ defmodule Conform.Mixfile do
   defp deps(_),    do: core_deps()
 
   defp core_deps(), do: [
-    {:exrm, optional: true},
+    {:exrm, "~> 1.0.0-rc5", optional: true},
     {:ex_doc, "~> 0.7", only: [:docs, :dev]},
     {:earmark, "~> 0.1", only: [:docs, :dev]}
   ]
