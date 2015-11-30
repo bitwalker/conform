@@ -8,6 +8,7 @@ defmodule Mix.Tasks.Conform.Configure do
   import Conform.Utils
 
   def run(args) do
+    Mix.Tasks.Loadpaths.run([])
     if Mix.Project.umbrella? do
       config = [build_path: Mix.Project.build_path]
       for %Mix.Dep{app: app, opts: opts} <- Mix.Dep.Umbrella.loaded do

@@ -52,11 +52,14 @@ defmodule Mix.Tasks.Conform.Effective do
         Mix.Project.in_project(app, opts[:path], config, fn _ -> do_run(args |> parse_args) end)
       end
     else
-      do_run(args |> parse_args)
+      args
+      |> parse_args
+      |> do_run
     end
   end
 
   defp do_run(args) do
+    Mix.Tasks.Loadpaths.run([])
     app       = Mix.Project.config |> Keyword.get(:app)
     conf_path = Path.join([File.cwd!, "config", "#{app}.conf"])
     # Load the base configuration from config.exs if it exists, and validate it

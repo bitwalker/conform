@@ -13,6 +13,7 @@ defmodule Mix.Tasks.Conform.New do
   import Conform.Utils
 
   def run(_args) do
+    Mix.Tasks.Loadpaths.run([])
     if Mix.Project.umbrella? do
       config = [build_path: Mix.Project.build_path]
       # Execute task for each project in the umbrella

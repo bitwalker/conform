@@ -5,6 +5,7 @@ defmodule Mix.Tasks.Conform.Archive do
   """
 
   def run([schema_path]) do
+    Mix.Tasks.Loadpaths.run([])
     curr_path  = File.cwd!
     schema_dir = Path.dirname(schema_path) |> Path.expand
     build_dir = case String.split(schema_dir, "/") |> List.last do

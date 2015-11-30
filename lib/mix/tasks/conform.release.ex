@@ -8,6 +8,7 @@ defmodule Mix.Tasks.Conform.Release do
   alias Conform.Utils
 
   def run(_) do
+    Mix.Tasks.Loadpaths.run([])
     # The goal here is to build the conform escript, so that exrm can
     # bundle it in a release
     case Mix.Dep.loaded([]) do
