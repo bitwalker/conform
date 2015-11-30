@@ -53,14 +53,7 @@ defmodule Mix.Tasks.Conform.Release do
     config = Mix.Project.deps_config
     config = Keyword.put(config, :app_path, build_path)
 
-    old_env = Mix.env
-
-    try do
-      Mix.env(:prod)
-      Mix.Project.in_project(:conform, conform_path, config, fun)
-    after
-      Mix.env(old_env)
-    end
+    Mix.Project.in_project(:conform, conform_path, config, fun)
   end
 
   # Builds the conform escript and returns the path
