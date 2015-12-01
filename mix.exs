@@ -27,8 +27,8 @@ defmodule Conform.Mixfile do
 
   defp deps(true) do
     [{:neotoma, "~> 1.7.3"},
-     {:ex_doc, "~> 0.10", only: [:docs, :dev]},
-     {:earmark, "> 0.0.0", only: [:docs, :dev]}] ++ core_deps()
+     {:ex_doc, "~> 0.10", only: :dev},
+     {:earmark, "> 0.0.0", only: :dev}] ++ core_deps()
   end
   defp deps(_), do: core_deps()
 
