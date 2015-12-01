@@ -39,6 +39,10 @@ configuration
 
 There are additional options for these tasks, use `mix help <task>` to view their documentation.
 
+## Usage with ExRM
+
+You'll need to use the [conform_exrm plugin](https://github.com/bitwalker/conform_exrm). See it's README to get started.
+
 ## Conf files and Schema files
 
 The conform .conf file looks something like the following:

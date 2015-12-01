@@ -28,13 +28,9 @@ defmodule Conform.Mixfile do
   defp deps(true) do
     [{:neotoma, "~> 1.7.3"},
      {:ex_doc, "~> 0.10", only: :dev},
-     {:earmark, "> 0.0.0", only: :dev}] ++ core_deps()
+     {:earmark, "> 0.0.0", only: :dev}]
   end
-  defp deps(_), do: core_deps()
-
-  defp core_deps(), do: [
-    {:exrm, "~> 1.0.0-rc5", optional: true},
-  ]
+  defp deps(_), do: []
 
   defp description, do: "Easy release configuration for Elixir apps."
   defp package do
