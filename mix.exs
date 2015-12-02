@@ -19,7 +19,12 @@ defmodule Conform.Mixfile do
   end
 
   def application do
-    [applications: [:neotoma]]
+    case @do_peg_compile? do
+      true ->
+        [applications: [:neotoma]]
+      false ->
+        [applications: []]
+    end
   end
 
   defp compilers(true), do: [:peg, :erlang, :elixir, :app]
