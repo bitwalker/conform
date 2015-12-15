@@ -23,7 +23,7 @@ defmodule Conform.Schema.Transform do
         ]]
 
   In the case of the two transforms which reference a transform module, the `transform/1` function on each will
-  be called with the current configuration state, which is a keyword list. Use the `Conform.Conf` module to query
+  be called with the current configuration state, which is actually a PID of an ETS table. Use the `Conform.Conf` module to query
   values from the configuration as shown in the example above.
   """
   alias Conform.Schema.Transform

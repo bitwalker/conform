@@ -80,10 +80,12 @@ complex_list.second.age = 40
 
 Short and sweet, and most importantly, easy for sysadmins and users to understand and modify. The real power of conform though is when you dig into the schema file. It allows you to define documentation, mappings between friendly setting names and specific application settings in the underlying sys.config, define validation of values via datatype specifications, provide default values, and transform simplified values from the .conf into something more meaningful to your application using translation functions.
 
-A schema is basically a single data structure. A keyword list, containing two top-level properties, `mappings`, and `translations`. Before we dive in, here's the schema for the .conf file above:
+A schema is basically a single data structure. A keyword list, containing the following top-level properties, `extends`, `import`, `mappings`, and `transforms`. Before we dive in, here's the schema for the .conf file above:
 
 ```elixir
 [
+  extends: [],
+  import: [],
   mappings: [
     "lager.handlers.console.level": [
       doc: """
@@ -138,7 +140,7 @@ A schema is basically a single data structure. A keyword list, containing two to
     ]
   ],
 
-  translations: [
+  transforms: [
     "myapp.another_val": fn val ->
       case _mapping, val do
         :all  -> {:on, [debug: true, tracing: true]}
@@ -178,14 +180,29 @@ A schema is basically a single data structure. A keyword list, containing two to
 ]
 ```
 
-This looks pretty daunting, but I've provided mix tasks to help you generate the schema from your existing `config.exs` file. Once you've gotten the schema tightened up though, you'll start to understand why it's worth a little extra effort up front. So schemas consist of two types of things: mappings and translations. Mappings are defined by four properties:
+This looks pretty daunting, but I've provided mix tasks to help you generate the schema from your existing `config.exs` file. Once you've gotten the schema tightened up though, you'll start to understand why it's worth a little extra effort up front. Let's talk about the top-level properties of the schema briefly:
+
+- `extends` allows you to extend the schema of another application in your project.
+- `import` allows you to import an application's modules which contain functions you wish to use.
+- `mappings` define the mapping between the .conf settings and your actual configuration keys. We'll get more into those later.
+- `transforms` define transformations of mapped values for more complex configuration scenarios.
+
+### Mappings
+
+Mappings are defined by four key properties (there are more, just see the `Conform.Schema.Mapping` module docs):
 
 - `:doc`, documentation on what this setting is, and how to use it
 - `:to`, if you want friendly names for not so friendly app settings, `:to` tells conform what setting this mapping applies to in the generated `.config`
 - `:datatype`, the datatype of the value, currently supports binary, charlist, atom, integer, float, ip (a tuple of strings `{ip, port}`), enum, and lists of one of those types. I currently am planning on supporting user-defined types, but that work has not yet been completed.
 - `:default`, optional, the value to use if one is not supplied for this setting. Should be the same form as the datatype for the setting. So for example, if you have a setting, `myapp.foo`, with a datatype of `[enum: [:info, :warn, :error]]`, then your default value should be one of those three atoms.
 
-After a mapping is parsed according to its schema definition, if a translation function with an arity of 2 or 3 exists for that mapping, the function is called with the following parameters: `mapping` and `value`, and optionally `accumulator`, if you provide a translation function with an arity of 3. The `mapping` parameter is basically what you would expect -- the mapping for the setting associated with the currently executing translation. The `value` is of course the value you are translating. `accumulator` is a bit different, but works the way it sounds. If you provide multiple mappings with the same `to` path, then translations for those mappings will receive an accumulated value for that config setting. In the example above, you can see I defined multiple mappings that all had different names, but pointed to the same underlying field. Each translation handles both the case where the accumulator is nil, or already contains a list of values. Let's take a look at what the final output of the combined .conf and schema files will look like.
+### Transforms
+
+After all settings have been mapped, each of the transforms is executed with the PID of the ETS table holding the config. You will need to use the `Conform.Conf` module API to query the configuration state using this PID. The value returned from the transform is then paired with the key the transformed is defined against and used in the final configuration.
+
+### Example Output
+
+The following is the output configuration from conform using the .conf and .schema.exs files shown above:
 
 ```erlang
 [{lager, [
@@ -220,7 +237,7 @@ If you are using `exrm` and need to import any applications from the `your_app/d
         ...
     ],
 
-    translations: [
+    transforms: [
         ...
         ...
         ...
@@ -228,7 +245,7 @@ If you are using `exrm` and need to import any applications from the `your_app/d
 ]
 ```
 
-Will be created archive with the `myapp.schema.ez` name in the your release which will contain the `my_app_dep1` and `my_app_dep2` applications. During the `sys.config` will be generated by conform script, the applications from the archive will be loaded and you can use any public API from these applications in the translations. Conform also allows to use a schema with imports without `exrm`. There is the special `conform.archive` mix task that takes one parameter - path of the schema:
+Will be created archive with the `myapp.schema.ez` name in the your release which will contain the `my_app_dep1` and `my_app_dep2` applications. During the `sys.config` will be generated by conform script, the applications from the archive will be loaded and you can use any public API from these applications in your transforms. Conform also allows to use a schema with imports without `exrm`. There is the special `conform.archive` mix task that takes one parameter - path of the schema:
 
 ```
 mix conform.archive myapp/config/myapp.schema.exs
@@ -263,7 +280,7 @@ I've also provided mix tasks to handle generating your initial .conf and .schema
       ]
     ],
 
-    translations: [
+    transforms: [
        ...
        ...
        ...
@@ -277,25 +294,15 @@ Where `MyModule1` and `MyModule2` must be modules which implement the `Conform.T
 defmodule MyModule1 do
   use Conform.Type
 
-  # You can return a string representing the documentation you wish to use,
-  # or false to use what is provided in the schema, under :doc. If you return
-  # documentation here, it will be appended to whatever is contained in :doc
+  # Return a string to produce documentation for the given type based on it's valid values (if specified).
+  # If nil is returned, the documentation specified in the schema will be used instead (if present).
   def to_doc(values) do
     "Document your custom type here"
   end
 
-  # Equivalent to the translation function in the schema
-  def translate(mapping, val, _acc) do
-    val
-  end
-
-  # Since conform only parses values as binaries, use this function to
-  # convert to your desired datatype. This is called prior to `translate/3`
-  # Return {:ok, val} or {:error, reason}
-  def parse_datatype(_key, val) when is_list(val) do
-    {:ok, List.to_atom(val)}
-  end
-  def parse_datatype(_key, val) do
+  # Converts the .conf value to this data type.
+  # Should return {:ok, term} | {:error, term}
+  def convert(val, _mapping) do
     {:ok, val}
   end
 
