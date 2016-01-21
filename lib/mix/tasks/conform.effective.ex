@@ -61,7 +61,7 @@ defmodule Mix.Tasks.Conform.Effective do
   defp do_run(args) do
     Mix.Tasks.Loadpaths.run([])
     app       = Mix.Project.config |> Keyword.get(:app)
-    conf_path = Path.join([File.cwd!, "config", "#{app}.conf"])
+    conf_path = Path.join([File.cwd!, "config", "#{app}_#{Mix.env}.conf"])
     # Load the base configuration from config.exs if it exists, and validate it
     # If config.exs doesn't exist, proceed if a .conf file exists, otherwise there
     # is no configuration to display
