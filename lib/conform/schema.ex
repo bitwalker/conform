@@ -58,10 +58,10 @@ defmodule Conform.Schema do
             transforms: [],
             validators: []
 
-  @doc """
-  This exception reflects an issue with the schema
-  """
   defmodule SchemaError do
+    @moduledoc """
+    This exception reflects an issue with the schema
+    """
     defexception message: "Invalid schema. Should be a keyword list with at least the :mappings key defined"
   end
 

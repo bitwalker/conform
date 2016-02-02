@@ -10,10 +10,10 @@ defmodule Conform.Translate do
 
   @type table_identifier :: non_neg_integer() | atom()
 
-  @doc """
-  This exception reflects an issue with the translation process
-  """
   defmodule TranslateError do
+    @moduledoc """
+    This exception reflects an issue with the translation process
+    """
     defexception message: "Translation failed!"
   end
 
