@@ -142,7 +142,7 @@ A schema is basically a single data structure. A keyword list, containing the fo
 
   transforms: [
     "myapp.another_val": fn val ->
-      case _mapping, val do
+      case val do
         :all  -> {:on, [debug: true, tracing: true]}
         :some -> {:on, [debug: true]}
         :none -> {:off, []}
