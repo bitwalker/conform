@@ -198,15 +198,18 @@ defmodule Conform.Schema do
         # Merge them onto the base schema in the order provided
         Enum.reduce(schemas, schema, fn s, acc ->
           s = Map.drop(s, [:extends])
-          Map.merge(acc, s, fn _, v1, v2 ->
-            cond do
-              Keyword.keyword?(v1) && Keyword.keyword?(v2) ->
-                Keyword.merge(v1, v2) |> Enum.map(fn _, v -> put_in(v, [:persist], false) end)
-              is_list(v1) && is_list(v2) ->
-                v1 |> Enum.concat(v2) |> Enum.uniq
-              true ->
-                v2
-            end
+          Map.merge(acc, s, fn
+            _, [], [] ->
+              []
+            _, v1, v2 ->
+              cond do
+                Keyword.keyword?(v1) && Keyword.keyword?(v2) ->
+                  Keyword.merge(v1, v2) |> Enum.map(fn _, v -> put_in(v, [:persist], false) end)
+                is_list(v1) && is_list(v2) ->
+                  v1 |> Enum.concat(v2) |> Enum.uniq
+                true ->
+                  v2
+              end
           end)
         end)
     end
