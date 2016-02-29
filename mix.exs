@@ -15,27 +15,21 @@ defmodule Conform.Mixfile do
      compilers: compilers(@do_peg_compile?),
      description: description,
      package: package,
-     deps: deps(@do_peg_compile?)]
+     deps: deps]
   end
 
   def application do
-    case @do_peg_compile? do
-      true ->
-        [applications: [:neotoma]]
-      false ->
-        [applications: []]
-    end
+    [applications: [:neotoma]]
   end
 
   defp compilers(true), do: [:peg, :erlang, :elixir, :app]
   defp compilers(_),    do: nil
 
-  defp deps(true) do
+  defp deps do
     [{:neotoma, "~> 1.7.3"},
      {:ex_doc, "~> 0.10", only: :dev},
      {:earmark, "> 0.0.0", only: :dev}]
   end
-  defp deps(_), do: []
 
   defp description, do: "Easy release configuration for Elixir apps."
   defp package do
