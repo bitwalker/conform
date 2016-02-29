@@ -280,17 +280,13 @@ defmodule Conform.Schema do
     string = if schema == Conform.Schema.empty do
       schema
       |> to_list
-      |> Inspect.Algebra.to_doc(%Inspect.Opts{pretty: true, width: 1})
-      |> Inspect.Algebra.format(1)
+      |> Inspect.Algebra.to_doc(%Inspect.Opts{pretty: true})
+      |> Inspect.Algebra.format(10)
       |> Enum.join
     else
       schema
       |> to_list
-      #|> Inspect.Algebra.to_doc(%Inspect.Opts{pretty: true, width: 10})
-      |> Enum.map(&to_doc(&1, %Inspect.Opts{pretty: true}))
-      |> Inspect.Algebra.format(10)
-      |> Enum.join
-      #|> Conform.Utils.Code.stringify
+      |> Conform.Utils.Code.stringify
     end
     case with_moduledoc do
       true ->
@@ -298,45 +294,6 @@ defmodule Conform.Schema do
       false ->
         string
     end
-  end
-
-  defp to_doc({:extends, extends}, opts) do
-    docs = Enum.map(extends, &Inspect.Algebra.to_doc(&1, opts))
-    glued = List.foldl(docs, "", fn doc, acc -> Inspect.Algebra.glue(doc, "\n", acc) end)
-    Inspect.Algebra.glue("extends: [", "\n", Inspect.Algebra.glue(glued, "\n", "]"))
-  end
-  defp to_doc({:import, imports}, opts) do
-    docs = Enum.map(imports, &Inspect.Algebra.to_doc(&1, opts))
-    glued = List.foldl(docs, "", fn doc, acc -> Inspect.Algebra.glue(doc, "\n", acc) end)
-    Inspect.Algebra.glue("extends: [", "\n", Inspect.Algebra.glue(glued, "\n", "]"))
-  end
-  defp to_doc(val, opts) do
-    Inspect.Algebra.to_doc(val, opts)
-  end
-
-  defp fix_doc({:doc_cons, "[", {:doc_cons, children, "]"}}) do
-    {:doc_cons, "[", {:doc_cons, {:doc_cons, {:doc_break, "\n"}, {:doc_nest, fix_doc(children), 1}}, "]"}}
-  end
-  defp fix_doc({:doc_cons, "[", children}) do
-    {:doc_cons, "[", {:doc_cons, {:doc_break, "\n"}, {:doc_nest, fix_doc(children), 0}}}
-  end
-  defp fix_doc({:doc_cons, children, ","}) do
-    {:doc_cons, {:doc_nest, children, 0}, ","}
-  end
-  defp fix_doc({:doc_break, _break}) do
-    {:doc_break, "\n"}
-  end
-  defp fix_doc({:doc_group, group}) do
-    {:doc_group, fix_doc(group)}
-  end
-  defp fix_doc({:doc_nest, nested, position}) do
-    {:doc_nest, fix_doc(nested), position}
-  end
-  defp fix_doc({:doc_cons, node, children}) do
-    {:doc_cons, fix_doc(node), fix_doc(children)}
-  end
-  defp fix_doc(object) do
-    object
   end
 
   defp to_list(%Schema{} = schema) do
