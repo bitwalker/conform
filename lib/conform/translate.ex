@@ -195,8 +195,8 @@ defmodule Conform.Translate do
 
   # Parse the provided value as a value of the given datatype
   defp parse_datatype(:atom, value, _mapping),     do: "#{value}" |> String.to_atom
-  defp parse_datatype(:binary, value, _mapping),   do: "#{value}"
-  defp parse_datatype(:charlist, value, _mapping), do: '#{value}'
+  defp parse_datatype(:binary, value, _mapping),   do: sanitize(value)
+  defp parse_datatype(:charlist, value, _mapping), do: '#{sanitize(value)}'
   defp parse_datatype(:boolean, value, %Mapping{name: name}) do
     try do
       case String.to_existing_atom("#{value}") do
@@ -268,6 +268,15 @@ defmodule Conform.Translate do
         end
       {false, _, _} ->
         nil
+    end
+  end
+
+  defp sanitize(value) do
+    bin_value = to_string(value)
+    size = byte_size(bin_value) - 2
+    case bin_value do
+      <<?", string::binary-size(size), ?">> -> string
+      _ -> bin_value
     end
   end
 
