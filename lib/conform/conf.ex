@@ -47,6 +47,7 @@ defmodule Conform.Conf do
     {:ok, table}
   end
 
+
   @doc """
   Selects key/value pairs from the conf table which match the provided key exactly,
   or match the provided key+variables exactly. Keys with variables (expressed as `$varname`),
@@ -58,8 +59,8 @@ defmodule Conform.Conf do
   ## Examples
 
       iex> table = :ets.new(:test, [:set, keypos: 1])
-      ...> :ets.insert(table, {['lager', 'handlers', 'console', 'level'], :info})
-      ...> :ets.insert(table, {['lager', 'handlers', 'file', 'error'], '/var/log/error.log'})
+      ...> #{__MODULE__}.put(table, ['lager', 'handlers', 'console', 'level'], :info)
+      ...> #{__MODULE__}.put(table, "lager.handlers.file.error", '/var/log/error.log'})
       ...> #{__MODULE__}.get(table, "lager.handlers.console.level")
       [{['lager', 'handlers', 'console', 'level'], :info}]
       ...> #{__MODULE__}.get(table, "lager.handlers.$backend.$setting")
@@ -74,6 +75,22 @@ defmodule Conform.Conf do
       {:error, _} = err -> err
       results           -> Enum.map(results, fn {key, _, value} -> {key, value} end)
     end
+  end
+
+  @doc """
+  Inserts new key/value to the conf table.
+
+  ## Examples
+
+      iex> table = :ets.new(:test, [:set, keypos: 1])
+      ...> #{__MODULE__}.put(table, "lage.handlers.console.level", :info)
+      ...> #{__MODULE__}.get(table, "lager.handlers.console.level")
+      [{['lager', 'handlers', 'console', 'level'], :info}]
+  """
+  @spec put(non_neg_integer() | atom(), String.t | [char_list], any) :: true
+  def put(table, key, value) when is_binary(key), do: put(table, get_key_path(key), value)
+  def put(table, key, value) when is_list(key) do
+    :ets.insert(table, {key, value})
   end
 
   @doc false
