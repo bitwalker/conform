@@ -104,7 +104,7 @@ defmodule Conform.Utils do
     extra_count  = :erlang.size(new) - merged_count
 
     case extra_count do
-      0 -> merged
+      0 -> List.to_tuple(merged)
       _ ->
         extra = new
           |> Tuple.to_list
