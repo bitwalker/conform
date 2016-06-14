@@ -13,7 +13,7 @@ defmodule Conform.Parse do
   """
   @spec file!(binary) :: term | no_return
   def file!(path) do
-    case :conf_parse.file(path) do
+    case :conform_parse.file(path) do
       terms when is_list(terms) -> terms
       {_valid, invalid, {{:line, line}, {:column, col}}} ->
         case String.split(invalid, "\n") do
@@ -31,7 +31,7 @@ defmodule Conform.Parse do
   """
   @spec file(binary) :: {:ok, term} | {:error, term}
   def file(path) do
-    case :conf_parse.file(path) do
+    case :conform_parse.file(path) do
       terms when is_list(terms) ->
         {:ok, terms}
       {_valid, invalid, {{:line, line}, {:column, col}}} ->
@@ -62,7 +62,7 @@ defmodule Conform.Parse do
   """
   @spec parse(binary) :: {:ok, term} | {:error, term}
   def parse(binary) do
-    case :conf_parse.parse(binary) do
+    case :conform_parse.parse(binary) do
       terms when is_list(terms) ->
         {:ok, terms}
       {_valid, invalid, {{:line, line}, {:column, col}}} ->
