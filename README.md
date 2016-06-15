@@ -328,4 +328,4 @@ I'm glad to hear from anyone using this on what problems they are having, if any
 
 ## License
 
-The .conf parser in `conf_parse.peg` is licensed under Apache 2.0, per Basho. The rest of this project is licensed under the MIT license. Use as you see fit.
+The .conf parser in `conform_parse.peg` is licensed under Apache 2.0, per Basho. The rest of this project is licensed under the MIT license. Use as you see fit.
