@@ -4,6 +4,13 @@ defmodule Mix.Tasks.Conform.Archive do
   An archive contains dependencies which are noted in the schema.
   """
 
+  defp mix_dep_module do
+    cond do
+      function_exported?(Mix.Dep, :children, 0) -> Mix.Dep
+      function_exported?(Mix.Dep.Loader, :children, 0) -> Mix.Dep.Loader
+    end
+  end
+
   def run([schema_path]) do
     Mix.Tasks.Loadpaths.run([])
     curr_path  = File.cwd!
@@ -21,7 +28,7 @@ defmodule Mix.Tasks.Conform.Archive do
       {_, _}   ->
         # Make config dir in _build, move schema files there
         archiving = Enum.reduce(extends, [], fn app, acc ->
-          app_path = Mix.Dep.children
+          app_path = mix_dep_module.children
                      |> Enum.filter(fn %Mix.Dep{app: app_name} -> app_name == app end)
                      |> Enum.map(fn %Mix.Dep{opts: opts} ->
                        Keyword.get(opts, :path, Keyword.get(opts, :dest))
