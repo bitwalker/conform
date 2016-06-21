@@ -182,8 +182,8 @@ defmodule Conform.Translate do
       t when is_function(t, 1) ->
         t.(table)
       _ ->
-        key = Enum.map(key, &List.to_string/1) |> Enum.join(".")
-        Conform.Utils.error("Invalid transform for #{key}. Must be a function of arity 1")
+        problem_key = Enum.map(key, &List.to_string/1) |> Enum.join(".")
+        Conform.Utils.error("Invalid transform for #{problem_key}. Must be a function of arity 1")
         exit(1)
     end
     :ets.insert(table, {key, transformed})
