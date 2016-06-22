@@ -5,7 +5,7 @@ defmodule FakeApp.Mixfile do
     [app: :fake_app,
      version: "0.0.1",
      elixir: ">= 1.0.0",
-     deps: deps]
+     deps: deps()]
   end
 
   # Configuration for the OTP application

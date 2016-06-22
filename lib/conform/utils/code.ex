@@ -14,7 +14,7 @@ defmodule Conform.Utils.Code do
   def stringify(schema) do
     # Use an agent to store indentation level
     Agent.start_link(fn -> 0 end, name: __MODULE__)
-    reset_indent!
+    reset_indent!()
     # Walk the syntax tree and transform each node into a string
     schema
     |> Macro.postwalk([], fn ast, _node -> {ast, []} end)
@@ -26,7 +26,7 @@ defmodule Conform.Utils.Code do
     case list do
       [] -> <<?[, ?]>>
       _  ->
-        indent!
+        indent!()
         format_list(list, <<?[>>)
     end
   end
@@ -54,7 +54,7 @@ defmodule Conform.Utils.Code do
   #   ]
   # ]
   defp format_list([], acc) do
-    acc <> "\n" <> tabs(unindent!) <> "]"
+    acc <> "\n" <> tabs(unindent!()) <> "]"
   end
   # 1 or more key/value pair elements
   defp format_list([{key, value}|rest], acc) do
@@ -66,32 +66,32 @@ defmodule Conform.Utils.Code do
   # 1 or more of any other element type
   defp format_list([h|t], acc) do
     case t do
-      [] -> format_list(t, acc <> "\n" <> tabs(get_indent) <> Macro.to_string(h))
-      _  -> format_list(t, acc <> "\n" <> tabs(get_indent) <> Macro.to_string(h) <> ",")
+      [] -> format_list(t, acc <> "\n" <> tabs(get_indent()) <> Macro.to_string(h))
+      _  -> format_list(t, acc <> "\n" <> tabs(get_indent()) <> Macro.to_string(h) <> ",")
     end
   end
   # A list item which is a key/value pair with a function as the value
   defp format_list_item({key, {:fn, _, _} = fndef}, acc) do
     <<?:, keystr::binary>> = Macro.to_string(key)
-    acc <> "\n" <> tabs(get_indent) <> keystr <> ": " <> format_function(fndef)
+    acc <> "\n" <> tabs(get_indent()) <> keystr <> ": " <> format_function(fndef)
   end
   # Just a tuple
   defp format_list_item({a, _} = tuple, acc) when not is_atom(a) do
-    acc <> "\n" <> tabs(get_indent) <> Macro.to_string(tuple)
+    acc <> "\n" <> tabs(get_indent()) <> Macro.to_string(tuple)
   end
   # A key/value pair list item
   defp format_list_item({key, value}, acc) do
     stringified_value      = do_stringify(value)
     case Macro.to_string(key) do
       <<?:, keystr::binary>> ->
-        acc <> "\n" <> tabs(get_indent) <> keystr <> ": " <> stringified_value
+        acc <> "\n" <> tabs(get_indent()) <> keystr <> ": " <> stringified_value
       keystr ->
-        acc <> "\n" <> tabs(get_indent) <> "\"#{keystr}\": " <> stringified_value
+        acc <> "\n" <> tabs(get_indent()) <> "\"#{keystr}\": " <> stringified_value
     end
   end
   # Any other list item value
   defp format_list_item(val, acc) do
-    acc <> "\n" <> tabs(get_indent) <> Macro.to_string(val)
+    acc <> "\n" <> tabs(get_indent()) <> Macro.to_string(val)
   end
 
   #######################
@@ -116,7 +116,7 @@ defmodule Conform.Utils.Code do
   defp format_function({:fn, _, clauses}) do
     {fn_head, indenter} = case clauses do
       [_]   -> {"fn ", &get_indent/0}
-      [_|_] -> {"fn\n#{tabs(indent!)}", &unindent!/0}
+      [_|_] -> {"fn\n#{tabs(indent!())}", &unindent!/0}
     end
     clauses
     |> format_function(fn_head)
@@ -130,7 +130,7 @@ defmodule Conform.Utils.Code do
   end
   defp format_function_clause({:->, opts, [params, body]}) do
     opts     = opts || []
-    indent   = Keyword.get(opts, :indent) || indent!
+    indent   = Keyword.get(opts, :indent) || indent!()
     unindent = case Keyword.get(opts, :indent) do
       nil -> &unindent!/0
       _   -> fn -> indent - 1 end
@@ -207,9 +207,9 @@ defmodule Conform.Utils.Code do
   # :open and :closed refer to whether the heredoc triple-quotes
   # are open or closed.
   defp to_heredoc(<<?\", rest :: binary>>),
-    do: to_heredoc(rest, :open, "\"\"\"\n#{tabs(get_indent)}")
+    do: to_heredoc(rest, :open, "\"\"\"\n#{tabs(get_indent())}")
   defp to_heredoc(bin),
-    do: to_heredoc(bin, :open, "\"\"\"\n#{tabs(get_indent)}")
+    do: to_heredoc(bin, :open, "\"\"\"\n#{tabs(get_indent())}")
   defp to_heredoc(<<?\">>, :open, acc),
     do: to_heredoc(<<>>, :closed, <<acc :: binary, ?", ?", ?">>)
   defp to_heredoc(<<?\", rest :: binary>>, :open, acc),
@@ -217,24 +217,24 @@ defmodule Conform.Utils.Code do
   defp to_heredoc(<<next :: utf8, rest :: binary>>, :open, acc),
     do: to_heredoc(rest, :open, <<acc :: binary, next :: utf8>>)
   defp to_heredoc(<<>>, :open, acc) do
-    <<acc :: binary, "#{tabs(get_indent)}\"\"\"">>
+    <<acc :: binary, "#{tabs(get_indent())}\"\"\"">>
     |> String.split("\n", trim: true)
     |> Enum.map(&String.strip/1)
-    |> Enum.join("\n" <> tabs(get_indent))
+    |> Enum.join("\n" <> tabs(get_indent()))
   end
   defp to_heredoc(<<>>, :closed, acc) do
     acc
     |> String.split("\n", trim: true)
     |> Enum.map(&String.strip/1)
-    |> Enum.join("\n" <> tabs(get_indent))
+    |> Enum.join("\n" <> tabs(get_indent()))
   end
 
   # Manage indentation state
   defp indent!,       do: set_indent(+1)
   defp unindent!,     do: set_indent(-1)
   defp reset_indent!, do: Agent.update(__MODULE__, fn _ -> 0 end)
-  defp get_indent,    do: Agent.get(__MODULE__, fn i -> i end)
-  defp set_indent(0), do: get_indent
+  defp get_indent(),  do: Agent.get(__MODULE__, fn i -> i end)
+  defp set_indent(0), do: get_indent()
   defp set_indent(x), do: Agent.get_and_update(__MODULE__, &{&1+x, &1+x})
 
   # Optimize generating tab strings for up to 50 indentation levels

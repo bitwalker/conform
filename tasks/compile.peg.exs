@@ -10,8 +10,8 @@ defmodule Mix.Tasks.Compile.Peg do
   @manifest      ".compile.peg"
 
   def run(_) do
-    manifest = load_manifest!
-    get_sources
+    manifest = load_manifest!()
+    get_sources()
     |> Enum.filter(&(compile?(&1, manifest)))
     |> Enum.map(&compile_peg/1)
     |> Enum.reduce([], &build_manifest/2)
@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Compile.Peg do
   end
 
   def clean do
-    get_sources |> Enum.map(&do_clean/1)
+    get_sources() |> Enum.map(&do_clean/1)
   end
 
   defp do_clean(source_path) do
@@ -79,7 +79,7 @@ defmodule Mix.Tasks.Compile.Peg do
   defp write_manifest!([]), do: :ok
   defp write_manifest!(manifest) when is_list(manifest) do
     serialized  = manifest |> Enum.join(<<?\n>>)
-    output_path = manifest_path
+    output_path = manifest_path()
     case File.write!(output_path, serialized) do
       :ok              -> info "PEG manifest updated"
       {:error, reason} -> error "Unable to save PEG manifest: #{reason}"
@@ -90,8 +90,8 @@ defmodule Mix.Tasks.Compile.Peg do
   defp manifest_path, do: Mix.Project.app_path |> Path.join(@manifest) |> Path.expand
 
   defp load_manifest! do
-    manifest = manifest_path
-    case File.exists?(manifest_path) do
+    manifest = manifest_path()
+    case File.exists?(manifest_path()) do
       true  ->
         # Create resource from manifest
         res = Stream.resource(

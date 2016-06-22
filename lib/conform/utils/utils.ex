@@ -6,13 +6,13 @@ defmodule Conform.Utils do
   @doc "Print an debugging message"
   def debug(message), do: log("==> #{message}")
   @doc "Print an informational message"
-  def info(message),  do: log("==> #{message}", green)
+  def info(message),  do: log("==> #{message}", green())
   @doc "Print a warning message"
-  def warn(message),  do: log("==> #{message}", yellow)
+  def warn(message),  do: log("==> #{message}", yellow())
   @doc "Print a notice message"
-  def notice(message), do: log("#{message}", yellow)
+  def notice(message), do: log("#{message}", yellow())
   @doc "Print an error message"
-  def error(message), do: log("==> #{message}", red)
+  def error(message), do: log("==> #{message}", red())
 
   # Prints a message to standard output, optionally colorized.
   case Mix.env do
