@@ -28,7 +28,7 @@ defmodule Mix.Tasks.Conform.Archive do
       {_, _}   ->
         # Make config dir in _build, move schema files there
         archiving = Enum.reduce(extends, [], fn app, acc ->
-          app_path = mix_dep_module.children
+          app_path = mix_dep_module().children
                      |> Enum.filter(fn %Mix.Dep{app: app_name} -> app_name == app end)
                      |> Enum.map(fn %Mix.Dep{opts: opts} ->
                        Keyword.get(opts, :path, Keyword.get(opts, :dest))

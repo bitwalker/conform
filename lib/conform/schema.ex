@@ -237,7 +237,7 @@ defmodule Conform.Schema do
   """
   @spec coalesce([schema]) :: schema
   def coalesce(schemas) do
-    Enum.reduce(schemas, empty, &merge/2)
+    Enum.reduce(schemas, empty(), &merge/2)
   end
 
   @doc """
@@ -326,7 +326,7 @@ defmodule Conform.Schema do
   Convert standard configuration to quoted schema format
   """
   @spec from_config([] | [{atom, term}]) :: [{atom, term}]
-  def from_config([]), do: empty
+  def from_config([]), do: empty()
   def from_config(config) when is_list(config) do
     to_schema(config)
   end
