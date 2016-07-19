@@ -1,0 +1,65 @@
+defmodule Conform.DistilleryPlugin.Impl do
+  defmacro __before_compile__(_env) do
+    case :code.which(Mix.Releases.Plugin) do
+      :non_existing ->
+        :ok
+      _ ->
+        quote do
+          @behaviour Mix.Releases.Plugin
+          import Mix.Releases.Logger
+
+          def before_assembly(%{profile: %{overlays: overlays} = profile} = release) do
+            conf_src = Path.join([File.cwd!, "config", "#{release.name}.conf"])
+            debug "conform: loading schema"
+            schema_src = Conform.Schema.schema_path(release.name)
+            if File.exists?(schema_src) do
+              # Define overlays
+              conform_overlays = [{:copy, schema_src, "releases/<%= release_version %>/<%= release_name %>.schema.exs"}]
+              # generate archive
+              result = Mix.Tasks.Conform.Archive.run(["#{schema_src}"])
+              # add archive to the overlays
+              conform_overlays = case result do
+                {_, _, []} ->
+                  {:ok, cwd} = File.cwd
+                  arch = "#{cwd}/rel/releases/#{release.version}/#{release.name}.schema.ez"
+                  case File.exists?(arch) do
+                    true  -> File.rm(arch)
+                    false -> :ok
+                  end
+                  conform_overlays
+                {_, zip_path, _} ->
+                  [{:copy, zip_path, "releases/<%= release_version %>/<%= release_name %>.schema.ez"}|conform_overlays]
+              end
+
+              conform_overlays = case File.exists?(conf_src) do
+                true ->
+                [{:copy,
+                    conf_src,
+                    "releases/<%= release_version %>/<%= release_name %>.conf"}|conform_overlays]
+                false ->
+                  conform_overlays
+              end
+
+              # Generate escript for release
+              debug "conform: generating escript"
+              escript_path = Path.join(["#{:code.priv_dir(:conform)}", "bin", "conform"])
+              conform_overlays = [{:copy, escript_path, "releases/<%= release_version %>/conform"}|conform_overlays]
+
+              # Add .conf, .schema.exs, and escript to relx.config as overlays
+              debug "conform: done!"
+              %{release | :profile => %{profile | :overlays => overlays ++ conform_overlays}}
+            else
+              debug "conform: no schema found, skipping"
+              release
+            end
+          end
+
+          def after_assembly(_release), do: nil
+          def before_package(_release), do: nil
+          def after_package(_release), do: nil
+          def after_cleanup(_args), do: nil
+
+        end
+    end
+  end
+end

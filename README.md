@@ -39,9 +39,21 @@ configuration
 
 There are additional options for these tasks, use `mix help <task>` to view their documentation.
 
-## Usage with ExRM
+## Usage with Distillery
 
-You'll need to use the [conform_exrm plugin](https://github.com/bitwalker/conform_exrm). See it's README to get started.
+Add the following to either your release or environment config:
+
+```elixir
+conform_prestart = Path.join(["#{:code.priv_dir(:conform)}",
+                              "bin",
+                              "pre_start.sh"])
+release :myapp do
+  set pre_start_hook: conform_prestart
+end
+```
+
+Then you're good to go! Distillery will automatically include conform in your release,
+and translate your configs at runtime. 
 
 ## Conf files and Schema files
 
