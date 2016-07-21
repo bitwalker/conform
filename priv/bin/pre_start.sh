@@ -38,6 +38,7 @@ if [ -f "$CONFORM_SCHEMA_PATH" ]; then
             echo "conform succeeded, but no sys.config was generated at \"${RELEASE_CONFIG_DIR}/sys.config\"."
             exit 1
         fi
+        SYS_CONFIG_PATH="$RELEASE_CONFIG_DIR/sys.config"
     else
         echo "missing .conf, expected it at $CONFORM_CONF_PATH"
         exit 1
