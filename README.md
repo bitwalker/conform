@@ -49,6 +49,7 @@ conform_prestart = Path.join(["#{:code.priv_dir(:conform)}",
                               "pre_start.sh"])
 release :myapp do
   set pre_start_hook: conform_prestart
+  plugin Conform.ReleasePlugin
 end
 ```
 
