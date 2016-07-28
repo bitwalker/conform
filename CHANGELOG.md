@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file (at least to the extent possible, I am not infallible sadly).
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## 2.1.1
+
+- Fixed stringification of guard clauses
+
 ## 2.1.0
 
 ### Added
