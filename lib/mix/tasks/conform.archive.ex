@@ -4,13 +4,6 @@ defmodule Mix.Tasks.Conform.Archive do
   An archive contains dependencies which are noted in the schema.
   """
 
-  defp mix_dep_module do
-    cond do
-      function_exported?(Mix.Dep, :children, 0) -> Mix.Dep
-      function_exported?(Mix.Dep.Loader, :children, 0) -> Mix.Dep.Loader
-    end
-  end
-
   def run([schema_path]) do
     Mix.Tasks.Loadpaths.run([])
     curr_path  = File.cwd!
@@ -38,13 +31,13 @@ defmodule Mix.Tasks.Conform.Archive do
         end) |> :lists.flatten
         # Make config dir in _build, move schema files there
         archiving = Enum.reduce(extends ++ deps_paths, [], fn app, acc ->
-          src_path = if is_atom(app) do
-                       app_path = curr_path <> "/deps/" <> (app |> to_string)
-                       Path.join([app_path, "config", "#{app}.schema.exs"])
-                     else
-                       {app, path_to_app} = app
-                       Path.join([curr_path, path_to_app, "config", "fake_app.schema.exs"])
-                     end
+          {app, src_path} = case app do
+            app_name when is_atom(app_name) ->
+              app_path = Path.join([curr_path, "deps", "#{app_name}"])
+              {app_name, Path.join([app_path, "config", "#{app_name}.schema.exs"])}
+            {app_name, path_to_app} ->
+              {app_name, Path.join([curr_path, path_to_app, "config", "fake_app.schema.exs"])}
+          end
           if File.exists?(src_path) do
             dest_path = Path.join(["#{app}", "config", "#{app}.schema.exs"])
             File.mkdir_p!(Path.join(build_dir, Path.dirname(dest_path)))
