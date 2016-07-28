@@ -6,9 +6,12 @@ defmodule ConformCodeTest do
     [transforms: [
       "single_clause": fn val ->
         case val do
-          :foo ->
+          foo when foo in [:foo] ->
             bar = String.to_atom("bar")
             bar
+          bar when bar != :baz ->
+            baz = String.to_atom(bar)
+            baz
           :baz -> :qux
         end
       end,
@@ -28,9 +31,12 @@ defmodule ConformCodeTest do
       transforms: [
         single_clause: fn val ->
           case val do
-            :foo ->
+            foo when foo in [:foo] ->
               bar = String.to_atom("bar")
               bar
+            bar when bar != :baz ->
+              baz = String.to_atom(bar)
+              baz
             :baz ->
               :qux
           end
@@ -51,8 +57,8 @@ defmodule ConformCodeTest do
     ]
     """ |> String.strip(?\n)
 
-    {:ok, quoted} = source |> Code.string_to_quoted
-    assert stringified == (quoted |> Conform.Utils.Code.stringify)
+    {:ok, quoted} = Code.string_to_quoted(source)
+    assert stringified == Conform.Utils.Code.stringify(quoted)
   end
 
   test "can stringify strings" do

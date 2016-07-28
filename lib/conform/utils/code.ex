@@ -144,19 +144,8 @@ defmodule Conform.Utils.Code do
              |> Enum.join("\n" <> tabs(indent))
     params <> " ->\n" <> tabs(indent) <> body <> "\n" <> tabs(unindent.())
   end
-  defp format_function_param({:when, _, clause}) do
-    params_filter = fn
-      {name, _, _} when name in [:in, :when] -> false
-      _ -> true
-    end
-    params = clause
-      |> Enum.take_while(params_filter)
-      |> Enum.map(&format_function_param/1)
-      |> Enum.join(", ")
-    conditions = clause
-      |> Enum.drop_while(params_filter)
-    when_conditions = format_function_param(conditions)
-    params <> " when " <> String.slice(when_conditions, 1, byte_size(when_conditions) - 2)
+  defp format_function_param({:when, _env, _condition} = clause) do
+    Macro.to_string(clause)
   end
   defp format_function_param({:=, _, [pattern, value]}) do
     Macro.to_string(pattern) <> " = " <> Macro.to_string(value)
