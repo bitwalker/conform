@@ -70,7 +70,10 @@ defmodule Conform.Schema do
   """
   @spec schema_path() :: binary
   def schema_path(),    do: Mix.Project.config |> Keyword.get(:app) |> schema_path
-  def schema_path(app), do: Path.join([File.cwd!, "config", schema_filename(app)])
+  def schema_path(app) do
+    conf_dir = Conform.Utils.src_conf_dir(app)
+    Path.join([conf_dir, schema_filename(app)])
+  end
 
   @doc """
   get the current app's schema filename
