@@ -33,7 +33,9 @@ defmodule Conform.ReleasePlugin do
           end
           conform_overlays
         {_, zip_path, _} ->
-          [{:copy, zip_path, "releases/<%= release_version %>/<%= release_name %>.schema.ez"}|conform_overlays]
+          [{:copy,
+            "#{zip_path}",
+            "releases/<%= release_version %>/<%= release_name %>.schema.ez"}|conform_overlays]
       end
 
       conform_overlays = case File.exists?(conf_src) do
