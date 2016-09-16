@@ -197,4 +197,24 @@ defmodule Conform.Utils do
       put_in(acc, key_path, v)
     end)
   end
+
+  @doc """
+  Indicates whether an app is loaded. Useful to ask whether :distillery
+  is loaded.
+  """
+  def is_app_loaded?(app) do
+    app in Enum.map(Application.loaded_applications, &elem(&1,0) )
+  end
+
+  @doc """
+  Returns dir path for the in-source-tree
+  configuration directory.
+  """
+  def src_conf_dir(app) do
+    if Mix.Project.umbrella? and is_app_loaded?(:distillery) do
+      Path.join([File.cwd!, "apps", "#{app}", "config"])
+    else
+      Path.join([File.cwd!, "config"])
+    end
+  end
 end

@@ -14,7 +14,7 @@ defmodule Conform.ReleasePlugin do
   your release in production.
   """
   def before_assembly(%{profile: %{overlays: overlays} = profile} = release) do
-    conf_src = Path.join([File.cwd!, "config", "#{release.name}.conf"])
+    conf_src = Path.join([Conform.Utils.src_conf_dir(release.name), "#{release.name}.conf"])
     debug "loading schema"
     schema_src = Conform.Schema.schema_path(release.name)
     if File.exists?(schema_src) do
@@ -33,7 +33,9 @@ defmodule Conform.ReleasePlugin do
           end
           conform_overlays
         {_, zip_path, _} ->
-          [{:copy, zip_path, "releases/<%= release_version %>/<%= release_name %>.schema.ez"}|conform_overlays]
+          [{:copy,
+            "#{zip_path}",
+            "releases/<%= release_version %>/<%= release_name %>.schema.ez"}|conform_overlays]
       end
 
       conform_overlays = case File.exists?(conf_src) do
