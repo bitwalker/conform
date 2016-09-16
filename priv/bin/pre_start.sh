@@ -29,16 +29,18 @@ if [ -f "$CONFORM_SCHEMA_PATH" ]; then
         EXTRA_OPTS="$EXTRA_OPTS -conform_schema ${CONFORM_SCHEMA_PATH} -conform_config $CONFORM_CONF_PATH"
 
         __conform="$REL_DIR/conform"
-        result="$("$BINDIR/escript" "$__conform" --conf "$CONFORM_CONF_PATH" --schema "$CONFORM_SCHEMA_PATH" --config "$SYS_CONFIG_PATH" --output-dir "$RELEASE_CONFIG_DIR")"
+        # Clobbers input sys.config
+        result="$("$BINDIR/escript" "$__conform" --conf "$CONFORM_CONF_PATH" --schema "$CONFORM_SCHEMA_PATH" --config "$SYS_CONFIG_PATH" --output-dir "$(dirname $SYS_CONFIG_PATH)")"
         exit_status="$?"
         if [ "$exit_status" -ne 0 ]; then
             exit "$exit_status"
         fi
-        if [ ! -r "$RELEASE_CONFIG_DIR/sys.config" ]; then
-            echo "conform succeeded, but no sys.config was generated at \"${RELEASE_CONFIG_DIR}/sys.config\"."
-            exit 1
+        if ! grep -q '^%%' "$SYS_CONFIG_PATH" ; then
+            tmpfile=$(mktemp "${SYS_CONFIG_PATH}.XXXXXX")
+            echo "%%Generated - edit $RELEASE_CONFIG_DIR/$REL_NAME.conf or $RELEASE_CONFIG_DIR/$REL_NAME.conf/sys.config" >> "$tmpfile"
+            cat "${SYS_CONFIG_PATH}" >> $tmpfile
+            mv "$tmpfile" "${SYS_CONFIG_PATH}"
         fi
-        SYS_CONFIG_PATH="$RELEASE_CONFIG_DIR/sys.config"
     else
         echo "missing .conf, expected it at $CONFORM_CONF_PATH"
         exit 1
