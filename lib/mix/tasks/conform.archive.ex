@@ -36,7 +36,7 @@ defmodule Mix.Tasks.Conform.Archive do
               app_path = Path.join([curr_path, "deps", "#{app_name}"])
               {app_name, Path.join([app_path, "config", "#{app_name}.schema.exs"])}
             {app_name, path_to_app} ->
-              {app_name, Path.join([curr_path, path_to_app, "config", "fake_app.schema.exs"])}
+              {app_name, Path.join([curr_path, path_to_app, "config", "#{app_name}.schema.exs"])}
           end
           if File.exists?(src_path) do
             dest_path = Path.join(["#{app}", "config", "#{app}.schema.exs"])
