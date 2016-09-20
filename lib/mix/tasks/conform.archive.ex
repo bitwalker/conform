@@ -8,6 +8,7 @@ defmodule Mix.Tasks.Conform.Archive do
     Mix.Tasks.Loadpaths.run([])
     curr_path  = File.cwd!
     schema_dir = Path.dirname(schema_path) |> Path.expand
+    [release_name|_] = String.split(Path.basename(schema_path), ".")
     build_dir = case String.split(schema_dir, "/") |> List.last do
       "files" -> "#{curr_path}/_build/#{Mix.env}/lib"
       _       -> "#{Path.dirname(schema_dir)}/_build/#{Mix.env}/lib"
@@ -36,7 +37,7 @@ defmodule Mix.Tasks.Conform.Archive do
               app_path = Path.join([curr_path, "deps", "#{app_name}"])
               {app_name, Path.join([app_path, "config", "#{app_name}.schema.exs"])}
             {app_name, path_to_app} ->
-              {app_name, Path.join([curr_path, path_to_app, "config", "fake_app.schema.exs"])}
+              {app_name, Path.join([curr_path, path_to_app, "config", "#{app_name}.schema.exs"])}
           end
           if File.exists?(src_path) do
             dest_path = Path.join(["#{app}", "config", "#{app}.schema.exs"])
@@ -44,7 +45,7 @@ defmodule Mix.Tasks.Conform.Archive do
             File.cp!(src_path, Path.join(build_dir, dest_path))
             [String.to_char_list(dest_path) | acc]
           else
-            []
+            acc
           end
         end)
         File.cd! build_dir
@@ -58,8 +59,7 @@ defmodule Mix.Tasks.Conform.Archive do
           files ++ acc
         end)
         # create archive
-        [archive_name|_] = String.split(Path.basename(schema_path), ".")
-        archive_path     = Path.join(schema_dir, "#{archive_name}.schema.ez")
+        archive_path     = Path.join(schema_dir, "#{release_name}.schema.ez")
         {:ok, zip_path}  = :zip.create('#{archive_path}', archiving)
         # Reset current directory
         File.cd! curr_path
