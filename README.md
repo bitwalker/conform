@@ -41,20 +41,10 @@ There are additional options for these tasks, use `mix help <task>` to view thei
 
 ## Usage with Distillery
 
-Add the following to either your release or environment config:
+NOTE: Please use at least version 0.11 of Distillery, as the convention for hooks has changed.
 
-```elixir
-conform_prestart = Path.join(["#{:code.priv_dir(:conform)}",
-                              "bin",
-                              "pre_start.sh"])
-release :myapp do
-  set pre_start_hook: conform_prestart
-  plugin Conform.ReleasePlugin
-end
-```
-
-Then you're good to go! Distillery will automatically include conform in your release,
-and translate your configs at runtime. 
+As of current master, no extra work is needed to work with Distillery, you can remove the old
+configuration which set the `pre_start` hook.
 
 ## Conf files and Schema files
 
