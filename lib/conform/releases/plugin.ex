@@ -16,12 +16,16 @@ defmodule Conform.ReleasePlugin do
   def before_assembly(%{profile: %{overlays: overlays} = profile} = release) do
     conf_src = Path.join([Conform.Utils.src_conf_dir(release.name), "#{release.name}.conf"])
     pre_start_src = Path.join(["#{:code.priv_dir(:conform)}", "bin", "pre_start.sh"])
+    pre_upgrade_src = Path.join(["#{:code.priv_dir(:conform)}", "bin", "pre_upgrade.sh"])
+    post_upgrade_src = Path.join(["#{:code.priv_dir(:conform)}", "bin", "post_upgrade.sh"])
     debug "loading schema"
     schema_src = Conform.Schema.schema_path(release.name)
     if File.exists?(schema_src) do
       # Define overlays
       conform_overlays = [
         {:copy, pre_start_src, "releases/<%= release_version %>/hooks/pre_start.d/conform_pre_start.sh"},
+        {:copy, pre_upgrade_src, "releases/<%= release_version %>/hooks/pre_upgrade.d/conform_pre_upgrade.sh"},
+        {:copy, post_upgrade_src, "releases/<%= release_version %>/hooks/post_upgrade.d/conform_post_upgrade.sh"},
         {:copy, schema_src, "releases/<%= release_version %>/<%= release_name %>.schema.exs"}]
       # generate archive
       result = Mix.Tasks.Conform.Archive.run(["#{schema_src}"])
