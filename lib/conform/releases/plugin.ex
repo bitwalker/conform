@@ -23,9 +23,9 @@ defmodule Conform.ReleasePlugin do
     if File.exists?(schema_src) do
       # Define overlays
       conform_overlays = [
-        {:copy, pre_start_src, "releases/<%= release_version %>/hooks/pre_start.d/conform_pre_start.sh"},
-        {:copy, pre_upgrade_src, "releases/<%= release_version %>/hooks/pre_upgrade.d/conform_pre_upgrade.sh"},
-        {:copy, post_upgrade_src, "releases/<%= release_version %>/hooks/post_upgrade.d/conform_post_upgrade.sh"},
+        {:copy, pre_start_src, "releases/<%= release_version %>/hooks/pre_start.d/00_conform_pre_start.sh"},
+        {:copy, pre_upgrade_src, "releases/<%= release_version %>/hooks/pre_upgrade.d/00_conform_pre_upgrade.sh"},
+        {:copy, post_upgrade_src, "releases/<%= release_version %>/hooks/post_upgrade.d/00_conform_post_upgrade.sh"},
         {:copy, schema_src, "releases/<%= release_version %>/<%= release_name %>.schema.exs"}]
       # generate archive
       result = Mix.Tasks.Conform.Archive.run(["#{schema_src}"])
