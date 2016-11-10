@@ -43,8 +43,17 @@ There are additional options for these tasks, use `mix help <task>` to view thei
 
 NOTE: Please use at least version 0.11 of Distillery, as the convention for hooks has changed.
 
-As of current master, no extra work is needed to work with Distillery, you can remove the old
-configuration which set the `pre_start` hook.
+All you need to use Conform with Distillery is to set the plugin in your release config:
+
+```elixir
+release :test do
+  set version: current_version(:test)
+
+  plugin Conform.ReleasePlugin
+end
+```
+
+As of current master, you can remove the old configuration which set the `pre_start` hook.
 
 ## Conf files and Schema files
 
