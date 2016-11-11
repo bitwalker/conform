@@ -249,10 +249,15 @@ defmodule Conform.Schema do
   """
   @spec merge(schema, schema) :: schema
   def merge(%Schema{} = x, %Schema{} = y) do
-    Dict.merge(x, y, fn _, v1, v2 ->
+    Map.merge(x, y, fn key, v1, v2 ->
+
       case Keyword.keyword?(v1) && Keyword.keyword?(v2) do
         true  -> Keyword.merge(v1, v2)
-        false -> v1 |> Enum.concat(v2) |> Enum.uniq
+        false ->
+          case key == :__struct__ do
+            true -> v2
+            false -> v1 |> Enum.concat(v2) |> Enum.uniq
+          end
       end
     end)
   end
