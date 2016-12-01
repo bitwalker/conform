@@ -10,9 +10,6 @@ if [ -z "$CONFORM_SCHEMA_PATH" ]; then
     fi
 fi
 
-echo "[DEBUG] schema path"
-echo $CONFORM_SCHEMA_PATH
-
 # Set CONFORM_CONF_PATH, the path to the .conf file to use
 # Use $RELEASE_CONFIG_DIR/$REL_NAME.conf if exists, otherwise releases/VSN/$REL_NAME.conf
 if [ -z "$CONFORM_CONF_PATH" ]; then
@@ -22,9 +19,6 @@ if [ -z "$CONFORM_CONF_PATH" ]; then
         CONFORM_CONF_PATH="$REL_DIR/$REL_NAME.conf"
     fi
 fi
-
-echo "[DEBUG] conf path"
-echo $CONFORM_CONF_PATH
 
 __schema_destination="$RELEASE_CONFIG_DIR/$REL_NAME.schema.exs"
 __conf_destination="$RELEASE_CONFIG_DIR/$REL_NAME.conf"
