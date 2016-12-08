@@ -70,7 +70,7 @@ defmodule Conform.ReleasePlugin do
     end
   end
 
-  defp add_conf(conform_overlays, release, conf_src) do
+  defp add_conf(conform_overlays, _release, conf_src) do
     case File.exists?(conf_src) do
       true ->
       [{:copy,
@@ -80,14 +80,14 @@ defmodule Conform.ReleasePlugin do
     end
   end
 
-  defp add_escript(conform_overlays, release) do
+  defp add_escript(conform_overlays, _release) do
     debug "generating escript"
     escript_path = Path.join(["#{:code.priv_dir(:conform)}", "bin", "conform"])
     [{:copy, escript_path, "releases/<%= release_version %>/conform"} | conform_overlays]
   end
 
   defp generate_umbrella_schema(release) do
-    schemas = Enum.reduce(umbrella_apps_paths, [], fn({name, path}, acc) ->
+    schemas = Enum.reduce(umbrella_apps_paths(), [], fn({name, path}, acc) ->
       schema =
         path
         |> Path.join("config/#{name}.schema.exs")
@@ -112,11 +112,9 @@ defmodule Conform.ReleasePlugin do
     tmp_schema_src
   end
 
-  @doc """
-  Concatenantes all conf files into a single umbrella conf file
-  """
+  ## Concatenantes all conf files into a single umbrella conf file
   defp generate_umbrella_conf(release) do
-    conf_files = Enum.reduce(umbrella_apps_paths, [], fn({name, path}, acc) ->
+    conf_files = Enum.reduce(umbrella_apps_paths(), [], fn({name, path}, acc) ->
       conf_path = path |> Path.join("config/#{name}.conf")
       case File.read(conf_path) do
         {:ok, data} ->
@@ -136,9 +134,7 @@ defmodule Conform.ReleasePlugin do
     tmp_conf_src
   end
 
-  @doc """
-  Backport from Elixir 1.4.0 `Mix.Project.apps_paths/1`
-  """
+  ## Backport from Elixir 1.4.0 `Mix.Project.apps_paths/1`
   defp umbrella_apps_paths do
     config = Mix.Project.config
     if apps_path = config[:apps_path] do
@@ -153,17 +149,15 @@ defmodule Conform.ReleasePlugin do
   end
 
   defp umbrella_child_names do
-    umbrella_apps_paths |> Map.keys
+    umbrella_apps_paths() |> Map.keys
   end
 
-  @doc """
-  Umbrella apps don't have a name in their mix project.
-  Instead we check to see if the release is an umbrella release, and that the
-  name of the release *is not* one of the apps in the umbrella.
-  """
+  ## Umbrella apps don't have a name in their mix project.
+  ## Instead we check to see if the release is an umbrella release, and that the
+  ## name of the release *is not* one of the apps in the umbrella.
   defp releasing_umbrella?(name) do
     case Mix.Project.umbrella? do
-      true  -> !Enum.member?(umbrella_child_names, name)
+      true  -> !Enum.member?(umbrella_child_names(), name)
       false -> false
     end
   end
