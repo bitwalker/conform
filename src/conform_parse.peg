@@ -68,7 +68,7 @@ double_quote_value <- (!((ws* crlf) / comment) '"' ("\\\\" / '\\"' / (!'"' .))* 
           {error, ?FMT("Error converting value on line #~p to latin1", [line(Idx)])};
       Chars ->
         Unescaped = unescape_double_quotes(Chars),
-        Bin = unicode:characters_to_binary(Unescaped, utf8, latin1),
+        Bin = unicode:characters_to_binary(Unescaped),
         Len      = erlang:byte_size(Bin),
         Unquoted = erlang:binary_part(Bin, {1, Len - 2}),
         binary_to_list(Unquoted)
@@ -77,7 +77,7 @@ double_quote_value <- (!((ws* crlf) / comment) '"' ("\\\\" / '\\"' / (!'"' .))* 
 
 %% A value is any character, with trailing whitespace stripped.
 value <- (!((ws* crlf) / comment) .)+ %{
-    case unicode:characters_to_binary(Node, utf8, latin1) of
+    case unicode:characters_to_binary(Node) of
         {_Status, _Begining, _Rest} ->
             {error, ?FMT("Error converting value on line #~p to latin1", [line(Idx)])};
         Bin ->
@@ -87,7 +87,7 @@ value <- (!((ws* crlf) / comment) .)+ %{
 
 %% A value is any character, except those which continue/close a list, with trailing whitespace stripped
 value_in_list <- (!(ws / "," / "]") .)+ %{
-    case unicode:characters_to_binary(Node, utf8, latin1) of
+    case unicode:characters_to_binary(Node) of
         {_Status, _Beginning, _Rest} ->
             {error, ?FMT("Error converting value on line #~p to latin1", [line(Idx)])};
         Bin ->

@@ -142,7 +142,7 @@ parse(Input) when is_binary(Input) ->
           {error, ?FMT("Error converting value on line #~p to latin1", [line(Idx)])};
       Chars ->
         Unescaped = unescape_double_quotes(Chars),
-        Bin = unicode:characters_to_binary(Unescaped, utf8, latin1),
+        Bin = unicode:characters_to_binary(Unescaped),
         Len      = erlang:byte_size(Bin),
         Unquoted = erlang:binary_part(Bin, {1, Len - 2}),
         binary_to_list(Unquoted)
@@ -152,7 +152,7 @@ parse(Input) when is_binary(Input) ->
 -spec 'value'(input(), index()) -> parse_result().
 'value'(Input, Index) ->
   p(Input, Index, 'value', fun(I,D) -> (p_one_or_more(p_seq([p_not(p_choose([p_seq([p_zero_or_more(fun 'ws'/2), fun 'crlf'/2]), fun 'comment'/2])), p_anything()])))(I,D) end, fun(Node, Idx) ->
-    case unicode:characters_to_binary(Node, utf8, latin1) of
+    case unicode:characters_to_binary(Node) of
         {_Status, _Begining, _Rest} ->
             {error, ?FMT("Error converting value on line #~p to latin1", [line(Idx)])};
         Bin ->
@@ -163,7 +163,7 @@ parse(Input) when is_binary(Input) ->
 -spec 'value_in_list'(input(), index()) -> parse_result().
 'value_in_list'(Input, Index) ->
   p(Input, Index, 'value_in_list', fun(I,D) -> (p_one_or_more(p_seq([p_not(p_choose([fun 'ws'/2, p_string(<<",">>), p_string(<<"]">>)])), p_anything()])))(I,D) end, fun(Node, Idx) ->
-    case unicode:characters_to_binary(Node, utf8, latin1) of
+    case unicode:characters_to_binary(Node) of
         {_Status, _Beginning, _Rest} ->
             {error, ?FMT("Error converting value on line #~p to latin1", [line(Idx)])};
         Bin ->
