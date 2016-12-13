@@ -271,6 +271,13 @@ defmodule Conform.Translate do
     end
   end
 
+  defp sanitize(value) when is_list(value) do
+    #this is neccessary for utf8 multibyte content:
+    value
+    |> Enum.map(&(<<&1>>))
+    |> Enum.join
+    |> sanitize()
+  end
   defp sanitize(value) do
     bin_value = to_string(value)
     size = byte_size(bin_value) - 2
