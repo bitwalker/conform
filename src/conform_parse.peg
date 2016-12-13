@@ -1,5 +1,4 @@
-%% -------------------------------------------------------------------
-%%
+%% -------------------------------------------------------------------%%
 %% conf_parse: for all your .conf parsing needs.
 %%
 %% Copyright (c) 2013 Basho Technologies, Inc.  All Rights Reserved.
@@ -65,7 +64,7 @@ list_value <- (!((ws* crlf) / comment) "[" (!"[" (word ws* "=" ws* ((double_quot
 double_quote_value <- (!((ws* crlf) / comment) '"' ("\\\\" / '\\"' / (!'"' .))* ("\r"? "\n")? '"')+ %{
     case unicode:characters_to_list(Node) of
       {_Status, _Begining, _Rest} ->
-          {error, ?FMT("Error converting value on line #~p to latin1", [line(Idx)])};
+          {error, ?FMT("Error converting value on line #~p to utf8", [line(Idx)])};
       Chars ->
         Unescaped = unescape_double_quotes(Chars),
         Bin = unicode:characters_to_binary(Unescaped),
@@ -76,10 +75,10 @@ double_quote_value <- (!((ws* crlf) / comment) '"' ("\\\\" / '\\"' / (!'"' .))* 
 %};
 
 %% A value is any character, with trailing whitespace stripped.
-value <- (!((ws* crlf) / comment) .)+ %{
-    case unicode:characters_to_binary(Node) of
+value <- (!((ws* crlf) / comment) [\\x{1}-\\x{FFFFF}])+ %{
+    case unicode:characters_to_binary(Node, utf8, utf8) of
         {_Status, _Begining, _Rest} ->
-            {error, ?FMT("Error converting value on line #~p to latin1", [line(Idx)])};
+            {error, ?FMT("Error converting value on line #~p to utf8", [line(Idx)])};
         Bin ->
             binary_to_list(Bin)
     end
@@ -89,7 +88,7 @@ value <- (!((ws* crlf) / comment) .)+ %{
 value_in_list <- (!(ws / "," / "]") .)+ %{
     case unicode:characters_to_binary(Node) of
         {_Status, _Beginning, _Rest} ->
-            {error, ?FMT("Error converting value on line #~p to latin1", [line(Idx)])};
+            {error, ?FMT("Error converting value on line #~p to utf8", [line(Idx)])};
         Bin ->
             binary_to_list(Bin)
     end
