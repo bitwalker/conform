@@ -274,8 +274,7 @@ defmodule Conform.Translate do
   defp sanitize(value) when is_list(value) do
     #this is neccessary for utf8 multibyte content:
     value
-    |> Enum.map(&(<<&1>>))
-    |> Enum.join
+    |> :erlang.iolist_to_binary
     |> sanitize()
   end
   defp sanitize(value) do
