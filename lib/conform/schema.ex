@@ -400,7 +400,7 @@ defmodule Conform.Schema do
   defp get_extends_schema(app_name, src_schema_path) do
     # Attempt loading from deps if Mix is available
     schema_path = try do
-      paths = Mix.Dep.children
+      paths = Mix.Dep.loaded(env: Mix.env)
               |> Enum.filter(fn %Mix.Dep{app: app} -> app == app_name end)
               |> Enum.map(fn %Mix.Dep{opts: opts} ->
                 Keyword.get(opts, :dest, Keyword.get(opts, :path))
