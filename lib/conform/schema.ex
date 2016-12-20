@@ -382,7 +382,7 @@ defmodule Conform.Schema do
         [list: list_type]
     end
   end
-  defp extract_datatype({_, v}), do: {:atom, extract_datatype(v)}
+  defp extract_datatype({k, v}), do: {extract_datatype(k), extract_datatype(v)}
   defp extract_datatype(_), do: :binary
 
   defp convert_to_datatype(:binary, v) when is_binary(v),     do: v
