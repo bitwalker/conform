@@ -6,7 +6,7 @@ defmodule ConfigTest do
   test "can load config.exs containing nested lists" do
     path   = Path.join(["test", "configs", "nested_list.exs"])
     config = path |> Mix.Config.read!
-    assert [my_app: [sublist: [[opt1: "val1", opt2: "val4"], [opt1: "val3", opt2: "val4"]],
+    assert [my_app: [sublist: [[opt1: "val3", opt2: "val4"], [opt1: "val1", opt2: "val4"]],
                      rx_pattern: [~r/[A-Z]+/]]] == config
   end
 
@@ -20,7 +20,7 @@ defmodule ConfigTest do
               doc: "Provide documentation for my_app.sublist here.",
               to: "my_app.sublist",
               datatype: [list: [list: {:atom, :binary}]],
-              default: [[opt1: "val1", opt2: "val4"], [opt1: "val3", opt2: "val4"]]
+              default: [[opt1: "val3", opt2: "val4"], [opt1: "val1", opt2: "val4"]]
             },
             %Mapping{
               name: "my_app.rx_pattern",
@@ -39,6 +39,6 @@ defmodule ConfigTest do
     {:ok, conf} = Path.join(["test", "confs", "nested_list.conf"]) |> Conform.Conf.from_file
     sysconfig = Conform.Translate.to_config(schema, config, conf)
     assert [my_app: [rx_pattern: [~r/[A-Z]+/],
-                     sublist: [[opt1: "val1", opt2: "val two"], [opt1: "val3", opt2: "val-4"]]]] == sysconfig
+                     sublist: [[opt1: "val3", opt2: "val-4"], [opt1: "val1", opt2: "val two"]]]] == sysconfig
   end
 end
