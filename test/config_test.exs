@@ -16,6 +16,19 @@ defmodule ConfigTest do
     File.rm!(output_path)
   end
 
+  test "issue #75" do
+    path = Path.join(["test", "configs", "raw_binary.exs"])
+    output_path = Path.join(["test", "configs", "raw_binary.schema.exs"])
+    config_raw = path |> Mix.Config.read! |> Macro.escape
+    config = path |> Mix.Config.read!
+
+    assert [my_app: _] = config
+    schema = Conform.Schema.from_config(config_raw)
+    assert %Schema{} = schema
+    assert :ok = Conform.Schema.write_quoted(schema, output_path)
+    File.rm!(output_path)
+  end
+
   test "logger example" do
     path = Path.join(["test", "configs", "logger.exs"])
     config_raw = path |> Mix.Config.read! |> Macro.escape

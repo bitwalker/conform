@@ -29,9 +29,11 @@ defmodule Conform.Utils.Code do
     end
   end
   defp do_stringify(string) when is_binary(string) do
-    case string |> String.contains?("\n") do
-      true  -> to_heredoc(string)
-      false -> "\"#{string}\""
+    is_unicode?  = :io_lib.printable_unicode_list(:binary.bin_to_list(string))
+    has_newline? = String.contains?(string, "\n")
+    cond do
+      is_unicode? && has_newline? -> to_heredoc(string)
+      :else -> "\"#{string}\""
     end
   end
   defp do_stringify(%Regex{} = regex) do
