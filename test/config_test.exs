@@ -3,13 +3,6 @@ defmodule ConfigTest do
   alias Conform.Schema
   alias Conform.Schema.Mapping
 
-  test "can load config.exs containing nested lists" do
-    path   = Path.join(["test", "configs", "nested_list.exs"])
-    config = path |> Mix.Config.read!
-    assert [my_app: [sublist: [[opt1: "val1", opt2: "val4"], [opt1: "val3", opt2: "val4"]],
-                     rx_pattern: [~r/[A-Z]+/]]] == config
-  end
-
   test "issue #85" do
     path = Path.join(["test", "configs", "issue_85.exs"])
     output_path = Path.join(["test", "configs", "issue_85.schema.exs"])
@@ -71,6 +64,28 @@ defmodule ConfigTest do
               default: [~r/[A-Z]+/]
             }],
             transforms: []} == schema
+  end
+
+  test "can translate config.exs containing a single nested list to schema" do
+    path   = Path.join(["test", "configs", "single_nested_list.exs"])
+    config = path |> Mix.Config.read! |> Macro.escape
+    schema = Conform.Schema.from_config(config)
+    assert %Schema{extends: [], import: [],
+                   mappings: [%Mapping{
+                                 name: "my_app.sublist",
+                                 doc: "Provide documentation for my_app.sublist here.",
+                                 to: "my_app.sublist",
+                                 datatype: [list: [list: {:atom, :binary}]],
+                                 default: [[opt1: "val1", opt2: "val4"]]
+                          },
+                              %Mapping{
+                                name: "my_app.rx_pattern",
+                                doc: "Provide documentation for my_app.rx_pattern here.",
+                                to: "my_app.rx_pattern",
+                                datatype: [list: :binary],
+                                default: [~r/[A-Z]+/]
+                              }],
+                   transforms: []} == schema
   end
 
   test "can translate config.exs + schema + conf with nested lists to sys.config" do
