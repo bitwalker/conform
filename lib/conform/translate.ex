@@ -242,7 +242,7 @@ defmodule Conform.Translate do
     |> Enum.map(&(parse_datatype(:ip, &1, mapping)))
   end
   defp parse_datatype([list: list_type], value, mapping) do
-    case :io_lib.char_list(value) do
+    case :io_lib.printable_unicode_list(value) do
       true  ->
         "#{value}"
         |> String.split(",")

@@ -44,7 +44,7 @@ defmodule Conform.Utils do
       iex> old = [one: [one_sub: [a: 1, b: 2]], two: {1, "foo", :bar}, three: 'just a charlist', four: [1, 2, 3]]
       ...> new = [one: [one_sub: [a: 2, c: 1]], two: {1, "foo", :baz, :qux}, three: 'a new charlist', four: [1, 2, 4, 6]]
       ...> #{__MODULE__}.merge(old, new)
-      [one: [one_sub: [a: 2, b: 2, c: 1]], two: {1, "foo", :baz, :qux}, three: 'a new charlist', four: [1, 2, 4, 6]]
+      [one: [one_sub: [a: 2, b: 2, c: 1]], two: {1, "foo", :baz, :qux}, three: 'a new charlist', four: [1, 2, 3, 4, 6]]
   """
   def merge(old, new) when is_list(old) and is_list(new),
     do: merge(old, new, [])
@@ -64,19 +64,27 @@ defmodule Conform.Utils do
     Enum.reverse(acc, new)
   end
 
-  defp merge_term([hold|told] = old, [hnew|tnew] = new) when is_list(new) do
-    cond do
-      :io_lib.char_list(old) && :io_lib.char_list(new) ->
-        new
-      Keyword.keyword?(old) && Keyword.keyword?(new) ->
-        Keyword.merge(old, new, fn (_key, old_val, new_val) -> merge_term(old_val, new_val) end)
-        |> Enum.sort_by(fn {k, _} -> k end)
-      true ->
-        [merge_term(hold, hnew) | merge_term(told, tnew)]
-    end
-  end
   defp merge_term([], new) when is_list(new), do: new
   defp merge_term(old, []) when is_list(old), do: old
+  defp merge_term([oh|_]=old, [nh|_]=new) do
+    cond do
+      :io_lib.printable_unicode_list(old) && :io_lib.printable_unicode_list(new) ->
+        new
+      Keyword.keyword?(old) && Keyword.keyword?(new) ->
+        Keyword.merge(old, new, fn  _key, old_val, new_val ->
+          merge_term(old_val, new_val)
+        end)
+        |> Enum.sort_by(fn {k, _} -> k end)
+      is_list(oh) and is_list(nh) ->
+        # Nested lists, we can't safely merge these so use the new one
+        new
+      :else ->
+        old_set = MapSet.new(old)
+        new_set = MapSet.new(new)
+        MapSet.union(old_set, new_set)
+        |> MapSet.to_list
+    end
+  end
 
   defp merge_term(old, new) when is_tuple(old) and is_tuple(new) do
     merged = old

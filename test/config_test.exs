@@ -34,8 +34,9 @@ defmodule ConfigTest do
 
   test "can translate config.exs + schema + conf with nested lists to sys.config" do
     path   = Path.join(["test", "configs", "nested_list.exs"])
-    config = path |> Mix.Config.read! |> Macro.escape
-    schema = Conform.Schema.from_config(config)
+    config_raw = path |> Mix.Config.read! |> Macro.escape
+    config = path |> Mix.Config.read!
+    schema = Conform.Schema.from_config(config_raw)
     {:ok, conf} = Path.join(["test", "confs", "nested_list.conf"]) |> Conform.Conf.from_file
     sysconfig = Conform.Translate.to_config(schema, config, conf)
     assert [my_app: [rx_pattern: [~r/[A-Z]+/],
