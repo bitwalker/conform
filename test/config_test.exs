@@ -23,6 +23,34 @@ defmodule ConfigTest do
     File.rm!(output_path)
   end
 
+  test "logger example" do
+    path = Path.join(["test", "configs", "logger.exs"])
+    config_raw = path |> Mix.Config.read! |> Macro.escape
+    config = path |> Mix.Config.read!
+    assert [logger: [backends: [:console, {ExSyslog, :exsyslog_error}, {ExSyslog, :exsyslog_debug}]]] = config
+    schema = Conform.Schema.from_config(config_raw)
+
+    assert %Schema{extends: [], import: [],
+                   mappings: [%Mapping{
+                                 name: "logger.backends",
+                                 commented: false,
+                                 datatype: [list: [:atom, {:atom, :atom}]],
+                                 default: [
+                                   :console,
+                                   {ExSyslog, :exsyslog_error},
+                                   {ExSyslog, :exsyslog_debug}
+                                 ],
+                                 doc: "Provide documentation for logger.backends here.",
+                                 hidden: false,
+                                 to: "logger.backends"
+                              }]} = schema
+
+    conf_str = Conform.Translate.to_conf(schema)
+    {:ok, conf} = Conform.Conf.from_binary(conf_str)
+    sysconfig = Conform.Translate.to_config(schema, config, conf)
+    assert [logger: [backends: [:console, {ExSyslog, :exsyslog_error}, {ExSyslog, :exsyslog_debug}]]] = sysconfig
+  end
+
   test "can translate config.exs containing nested lists to schema" do
     path   = Path.join(["test", "configs", "nested_list.exs"])
     config = path |> Mix.Config.read! |> Macro.escape

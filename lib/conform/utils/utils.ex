@@ -66,6 +66,7 @@ defmodule Conform.Utils do
 
   defp merge_term([], new) when is_list(new), do: new
   defp merge_term(old, []) when is_list(old), do: old
+  defp merge_term(old, old), do: old
   defp merge_term([oh|_]=old, [nh|_]=new) do
     cond do
       :io_lib.printable_unicode_list(old) && :io_lib.printable_unicode_list(new) ->

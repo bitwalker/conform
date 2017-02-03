@@ -345,7 +345,9 @@ defmodule Conform.Schema do
   defp to_schema(config), do: to_schema(config, %Schema{})
   defp to_schema([], schema), do: schema
   defp to_schema([{app, settings} | config], schema) do
-    mappings = Enum.map(settings, fn {k, v} -> to_mapping("#{app}", k, v) end) |> List.flatten
+    mappings = settings
+    |> Enum.map(fn {k, v} -> to_mapping("#{app}", k, v) end)
+    |> List.flatten
     to_schema(config, %{schema | :mappings => schema.mappings ++ mappings})
   end
 
@@ -356,34 +358,48 @@ defmodule Conform.Schema do
           to_mapping("#{key}.#{setting}", k, v)
         end
       false ->
-        datatype     = extract_datatype(value)
+        {val, _} = Code.eval_quoted(value)
+        datatype     = extract_datatype(val)
         setting_name = "#{key}.#{setting}"
         Conform.Schema.Mapping.from_quoted({:"#{setting_name}", [
           doc:     "Provide documentation for #{setting_name} here.",
           to:       setting_name,
           datatype: datatype,
-          default:  convert_to_datatype(datatype, value)
+          default:  convert_to_datatype(datatype, val)
         ]})
     end
   end
 
-  defp extract_datatype(v) when is_atom(v),    do: :atom
-  defp extract_datatype(v) when is_binary(v),  do: :binary
-  defp extract_datatype(v) when is_boolean(v), do: :boolean
-  defp extract_datatype(v) when is_integer(v), do: :integer
-  defp extract_datatype(v) when is_float(v),   do: :float
+  def extract_datatype(v) when is_atom(v),    do: :atom
+  def extract_datatype(v) when is_binary(v),  do: :binary
+  def extract_datatype(v) when is_boolean(v), do: :boolean
+  def extract_datatype(v) when is_integer(v), do: :integer
+  def extract_datatype(v) when is_float(v),   do: :float
   # First check if the list value type is a charlist, otherwise
-  # assume a list of whatever the first element value type is
-  defp extract_datatype([h|_]=v) when is_list(v) and h != [] do
-    case :io_lib.char_list(v) do
+  # build up a list of subtypes the list contains
+  def extract_datatype([_h|_rest]=v) do
+    case :io_lib.printable_unicode_list(v) do
       true  -> :charlist
       false ->
-        list_type = extract_datatype(h)
-        [list: list_type]
+        subtypes = v
+        |> Enum.map(&extract_datatype/1)
+        |> Enum.uniq
+        case subtypes do
+          [list_type] -> [list: list_type]
+          list_types when is_list(list_types) -> [list: list_types]
+          list_type -> [list: list_type]
+        end
     end
   end
-  defp extract_datatype({k, v}), do: {extract_datatype(k), extract_datatype(v)}
-  defp extract_datatype(_), do: :binary
+  # Short cut for keyword lists
+  def extract_datatype({k, v}), do: {extract_datatype(k), extract_datatype(v)}
+  def extract_datatype(tuple) when is_tuple(tuple) do
+    tuple
+    |> Tuple.to_list
+    |> Enum.map(&extract_datatype/1)
+    |> List.to_tuple
+  end
+  def extract_datatype(_), do: :binary
 
   defp convert_to_datatype(:binary, v) when is_binary(v),     do: v
   defp convert_to_datatype(:binary, v) when not is_binary(v), do: nil

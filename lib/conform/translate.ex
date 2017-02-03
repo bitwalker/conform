@@ -82,9 +82,9 @@ defmodule Conform.Translate do
                  # Sort by key length to ensure that mappings are processed depth-first
                  |> Enum.sort_by(fn %Mapping{name: key} -> Enum.count(key) end, fn x, y -> x >= y end)
       transforms = schema.transforms
-                   |> Enum.map(fn %Transform{path: key} = transform ->
-                        %{transform | :path => Conform.Conf.get_key_path(key)}
-                      end)
+      |> Enum.map(fn %Transform{path: key} = transform ->
+           %{transform | :path => Conform.Conf.get_key_path(key)}
+         end)
       # Apply datatype conversions
       convert_types(mappings, conf_table_id)
       # Build/map complex types
@@ -194,7 +194,7 @@ defmodule Conform.Translate do
   defp add_comment(line), do: "# #{line}"
 
   # Parse the provided value as a value of the given datatype
-  defp parse_datatype(:atom, value, _mapping),     do: "#{value}" |> String.to_atom
+  defp parse_datatype(:atom, value, _mapping),     do: String.to_atom("#{value}")
   defp parse_datatype(:binary, value, _mapping),   do: sanitize(value)
   defp parse_datatype(:charlist, value, _mapping), do: '#{sanitize(value)}'
   defp parse_datatype(:boolean, value, %Mapping{name: name}) do
@@ -241,6 +241,47 @@ defmodule Conform.Translate do
     |> Enum.map(&String.strip/1)
     |> Enum.map(&(parse_datatype(:ip, &1, mapping)))
   end
+  defp parse_datatype([list: [list: list_type]], value, mapping) do
+    Enum.map(value, &(parse_datatype([list: list_type], &1, mapping)))
+  end
+  defp parse_datatype([list: list_types], value, mapping) when is_list(list_types) do
+    list = cond do
+      :io_lib.printable_unicode_list(value) ->
+        "#{value}"
+        |> String.split(",")
+        |> Enum.map(&String.strip/1)
+        |> Enum.map(fn element ->
+          case String.split(element, "=", trim: true) do
+            [_] -> element
+            [k, v] -> {String.trim(k), String.trim(v)}
+          end
+        end)
+      :else ->
+        value
+    end
+    Enum.map(list, fn element ->
+      case Enum.reduce(list_types, element, fn
+        _type, {:ok, _} = result -> result
+        type, element ->
+          try do
+            case parse_datatype(type, element, mapping) do
+              nil ->
+                element
+              parsed ->
+                {:ok, parsed}
+            end
+          rescue
+            _ ->
+              element
+          end
+          end) do
+        {:ok, parsed} -> parsed
+        _other ->
+          name = Enum.map(mapping.name, &List.to_string/1) |> Enum.join(".")
+          raise TranslateError, message: "Invalid format for #{name}. Expected one of: #{inspect list_types}"
+      end
+    end)
+  end
   defp parse_datatype([list: list_type], value, mapping) do
     case :io_lib.printable_unicode_list(value) do
       true  ->
@@ -250,6 +291,21 @@ defmodule Conform.Translate do
         |> Enum.map(&(parse_datatype(list_type, &1, mapping)))
       false ->
         Enum.map(value, &(parse_datatype(list_type, &1, mapping)))
+    end
+  end
+  defp parse_datatype(tuple, value, mapping) when is_tuple(tuple) and is_tuple(value) do
+    type_list = Tuple.to_list(tuple)
+    values = Tuple.to_list(value)
+    cond do
+      length(type_list) == length(values) ->
+        Enum.zip(type_list, values)
+        |> Enum.map(fn {type, val} ->
+          parse_datatype(type, val, mapping)
+        end)
+        |> List.to_tuple
+      :else ->
+        name = Enum.map(mapping.name, &List.to_string/1) |> Enum.join(".")
+        raise TranslateError, message: "Invalid format for #{name}. Expected #{inspect tuple}"
     end
   end
   defp parse_datatype({:atom, type}, {k, v}, mapping) do
@@ -287,7 +343,7 @@ defmodule Conform.Translate do
   end
 
   # Write values of the given datatype to their string format (for the .conf)
-  defp write_datatype(:atom, value, _setting), do: value |> Atom.to_string
+  defp write_datatype(:atom, value, _setting), do: Atom.to_string(value)
   defp write_datatype(:ip, value, setting) do
     case value do
       {ip, port} -> "#{ip}:#{port}"
@@ -300,6 +356,20 @@ defmodule Conform.Translate do
       elems = Enum.map(sublist, &(write_datatype(list_type, &1, setting))) |> Enum.join(", ")
       <<?[, elems::binary, ?]>>
     end) |> Enum.join(", ")
+  end
+  defp write_datatype([list: list_types], value, setting)
+    when is_list(list_types) and is_list(value) do
+    value
+    |> Enum.map(fn element ->
+      datatype = Conform.Schema.extract_datatype(element)
+      cond do
+        datatype in list_types ->
+          write_datatype(datatype, element, setting)
+        :else ->
+          raise TranslateError, message: "Invalid datatype for #{setting}. Expected one of: #{inspect list_types}"
+      end
+    end)
+    |> Enum.join(", ")
   end
   defp write_datatype([list: list_type], value, setting) when is_list(value) do
     value |> Enum.map(&(write_datatype(list_type, &1, setting))) |> Enum.join(", ")
