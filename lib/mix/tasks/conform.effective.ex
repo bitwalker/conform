@@ -75,7 +75,9 @@ defmodule Mix.Tasks.Conform.Effective do
     end
     # Read .conf
     conf = case File.exists?(conf_path) do
-      false -> nil
+      false ->
+        error "You must have a .conf file in order to run conform.effective!"
+        exit(:normal)
       true  ->
         case Conform.Conf.from_file(conf_path) do
           {:error, reason} ->
