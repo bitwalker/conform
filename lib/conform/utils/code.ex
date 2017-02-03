@@ -17,8 +17,6 @@ defmodule Conform.Utils.Code do
     reset_indent!()
     # Walk the syntax tree and transform each node into a string
     schema
-    |> Macro.postwalk([], fn ast, _node -> {ast, []} end)
-    |> elem(0)
     |> do_stringify
   end
 

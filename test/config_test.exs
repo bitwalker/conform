@@ -10,6 +10,19 @@ defmodule ConfigTest do
                      rx_pattern: [~r/[A-Z]+/]]] == config
   end
 
+  test "issue #85" do
+    path = Path.join(["test", "configs", "issue_85.exs"])
+    output_path = Path.join(["test", "configs", "issue_85.schema.exs"])
+    config_raw = path |> Mix.Config.read! |> Macro.escape
+    config = path |> Mix.Config.read!
+    assert [rocket: _] = config
+
+    schema = Conform.Schema.from_config(config_raw)
+    assert %Schema{} = schema
+    assert :ok = Conform.Schema.write_quoted(schema, output_path)
+    File.rm!(output_path)
+  end
+
   test "can translate config.exs containing nested lists to schema" do
     path   = Path.join(["test", "configs", "nested_list.exs"])
     config = path |> Mix.Config.read! |> Macro.escape
