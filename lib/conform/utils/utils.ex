@@ -166,7 +166,14 @@ defmodule Conform.Utils do
 
   defp available_modules(plugin_type) do
     :code.all_loaded
-    |> Stream.map(fn {module, _path} -> {module, get_in(module.module_info, [:attributes, :behaviour])} end)
+    |> Stream.map(fn {module, _path} ->
+      try do
+        {module, get_in(module.module_info, [:attributes, :behaviour])}
+      rescue
+        _ ->
+          {nil, []}
+      end
+    end)
     |> Stream.filter(fn {_module, behaviours} -> is_list(behaviours) && plugin_type in behaviours end)
     |> Enum.map(fn {module, _} -> module end)
   end
