@@ -3,6 +3,28 @@ defmodule ConfigTest do
   alias Conform.Schema
   alias Conform.Schema.Mapping
 
+  test "README example" do
+    schema_path = Path.join(["test", "schemas", "readme_example.schema.exs"])
+    schema = Conform.Schema.load!(schema_path)
+    conf_path = Path.join(["test", "confs", "readme_example.conf"])
+    {:ok, conf} = Conform.Conf.from_file(conf_path)
+    sysconfig = Conform.Translate.to_config(schema, [], conf)
+    expected = [lager: [
+         handlers: [
+             lager_console_backend: :info,
+             lager_file_backend: [file: "/var/log/console.log", level: :info],
+             lager_file_backend: [file: "var/log/error.log",    level: :error]
+           ]],
+     myapp: [
+         another_val: {:on, [{:debug, true}, {:tracing, true}]},
+         some_val: :foo,
+         db: [hosts: [{"127.0.0.1", "8001"}]],
+         complex_list: [first: %{age: 20, username: "username1"},
+                        second: %{age: 40, username: "username2"}]
+       ]]
+    assert expected == sysconfig
+  end
+
   test "issue #85" do
     path = Path.join(["test", "configs", "issue_85.exs"])
     output_path = Path.join(["test", "configs", "issue_85.schema.exs"])

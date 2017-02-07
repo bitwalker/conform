@@ -93,6 +93,7 @@ defmodule Conform.Translate do
       apply_mappings(mappings, conf_table_id)
       # Apply translations to aggregated values
       apply_transforms(transforms, conf_table_id)
+      IO.inspect :ets.tab2list(conf_table_id), label: "apply_transforms"
       # Fetch config from ETS, convert to config tree
       :ets.tab2list(conf_table_id) |> Conform.Utils.results_to_tree
     catch
@@ -166,7 +167,7 @@ defmodule Conform.Translate do
 
   defp construct_complex_type(%Mapping{name: key}, table) do
     # Get all records which match the current map_key + children
-    selected = Conform.Conf.wildcard_get(table, key)
+    selected = Conform.Conf.fuzzy_get(table, key)
     complex  = Conform.Utils.results_to_tree(selected, key)
     # We return the selected items as well as the constructed type so that
     # we can perform additional actions against those results (such as deletion)

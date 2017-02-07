@@ -41,8 +41,6 @@ There are additional options for these tasks, use `mix help <task>` to view thei
 
 ## Usage with Distillery
 
-NOTE: Please use at least version 0.11 of Distillery, as the convention for hooks has changed.
-
 All you need to use Conform with Distillery is to set the plugin in your release config:
 
 ```elixir
@@ -53,7 +51,7 @@ release :test do
 end
 ```
 
-As of current master, you can remove the old configuration which set the `pre_start` hook.
+In 2.1+, you can remove the old configuration which set the `pre_start` hook.
 
 ## Conf files and Schema files
 
@@ -161,32 +159,21 @@ A schema is basically a single data structure. A keyword list, containing the fo
         _     -> {:off, []}
       end
     end,
-    "lager.handlers.console.level": fn
-      _mapping, level, nil when level in [:info, :error] ->
-          [lager_console_backend: level]
-      _mapping, level, acc when level in [:info, :error] ->
-          acc ++ [lager_console_backend: level]
-      _, level, _ ->
-        IO.puts("Unsupported console logging level: #{level}")
-        exit(1)
+    "lager.handlers.file": MyApp.Transforms.ToLagerFileBackend,
+    "lager.handlers.console": MyApp.Transforms.ToLagerConsoleBackend,
+    "lager.handlers": fn conf ->
+        file_handlers = Conform.Conf.get(conf, "lager.handlers.file.$level")
+          |> Enum.map(fn {[_, _, backend, level], path} -> {backend, [level: level, path: path]} end)
+        console_handlers = Conform.Conf.get(conf, "lager.handlers.console")
+          |> Enum.map(fn {[_, _, backend], conf} -> {backend, conf}
+        console_handlers ++ file_handlers
     end,
-    "lager.handlers.file.error": fn
-      _, path, nil ->
-        [lager_file_backend: [file: path, level: :error]]
-      _, path, acc ->
-        acc ++ [lager_file_backend: [file: path, level: :error]]
-    end,
-    "lager.handlers.file.info": fn
-      _, path, nil ->
-        [lager_file_backend: [file: path, level: :info]]
-      _, path, acc ->
-        acc ++ [lager_file_backend: [file: path, level: :info]]
-    end,
-    "my_app.complex_list.*": fn _, {key, value_map}, acc ->
-    [[name: key,
-      username: value_map[:username],
-      age:  value_map[:age]
-     ] | acc]
+    "my_app.complex_list.*": fn conf ->
+      items = Conform.Conf.get(conf, "my_app.complex_list.$name")
+      |> Enum.map(fn {[_,_,item, name] = something, val} ->
+        IO.inspect {something, val}
+        {name, val}
+      end)
     end
   ]
 ]
