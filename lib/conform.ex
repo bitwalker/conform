@@ -22,6 +22,8 @@ defmodule Conform do
   If `--config <config>` is given, `<config>` is merged under the translated
   config prior to output. Use this to merge a default sys.config with the
   configuration generated from the source .conf file.
+
+  If `--code-path <path>` is given, `<path>` will be appended to the code path.
   """
   def parse_args([]) do
     :help
@@ -30,7 +32,8 @@ defmodule Conform do
   def parse_args(argv) do
     parse = OptionParser.parse(argv, switches: [help: :boolean,      conf: :string,
                                                 schema: :string,     filename: :string,
-                                                output_dir: :string, config: :string],
+                                                output_dir: :string, config: :string,
+                                                code_path: :string],
                                      aliases:  [h:    :help])
     case parse do
       {[help: true], _, _} -> :help
@@ -68,6 +71,12 @@ defmodule Conform do
         filename = Keyword.get(switches, :filename, "sys.config")
         path     = Keyword.get(switches, :output_dir, File.cwd!) |> Path.join(filename)
         config   = Keyword.get(switches, :config, nil)
+        case Keyword.get(switches, :code_path) do
+          nil -> :ok
+          path when is_binary(path) ->
+            Path.wildcard(Path.expand(path))
+            |> Enum.each(fn p -> :code.add_pathz('#{p}') end)
+        end
         # Process options
         %Options{conf: conf, schema: schema, write_to: path, config: config } |> process
     end
