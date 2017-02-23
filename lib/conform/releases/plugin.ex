@@ -14,7 +14,7 @@ defmodule Conform.ReleasePlugin do
   your release in production.
   """
   def before_assembly(%{profile: %{overlays: overlays} = profile} = release) do
-    pre_start_src = Path.join(["#{:code.priv_dir(:conform)}", "bin", "pre_start.sh"])
+    pre_configure_src = Path.join(["#{:code.priv_dir(:conform)}", "bin", "pre_configure.sh"])
     pre_upgrade_src = Path.join(["#{:code.priv_dir(:conform)}", "bin", "pre_upgrade.sh"])
     post_upgrade_src = Path.join(["#{:code.priv_dir(:conform)}", "bin", "post_upgrade.sh"])
     debug "loading schema"
@@ -24,7 +24,8 @@ defmodule Conform.ReleasePlugin do
 
     # Define overlays
     conform_overlays = [
-      {:copy, pre_start_src, "releases/<%= release_version %>/hooks/pre_start.d/00_conform_pre_start.sh"},
+      {:copy, pre_configure_src, "releases/<%= release_version %>/hooks/pre_start.d/00_conform_pre_configure.sh"},
+      {:copy, pre_configure_src, "releases/<%= release_version %>/hooks/pre_configure.d/00_conform_pre_configure.sh"},
       {:copy, pre_upgrade_src, "releases/<%= release_version %>/hooks/pre_upgrade.d/00_conform_pre_upgrade.sh"},
       {:copy, post_upgrade_src, "releases/<%= release_version %>/hooks/post_upgrade.d/00_conform_post_upgrade.sh"},
       {:copy, schema_src, "releases/<%= release_version %>/<%= release_name %>.schema.exs"}]
