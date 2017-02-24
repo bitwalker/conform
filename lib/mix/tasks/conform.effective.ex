@@ -45,16 +45,23 @@ defmodule Mix.Tasks.Conform.Effective do
     end
   end
 
-  def run(args) do
-    if Mix.Project.umbrella? do
-      config = [build_path: Mix.Project.build_path]
-      for %Mix.Dep{app: app, opts: opts} <- Mix.Dep.Umbrella.loaded do
-        Mix.Project.in_project(app, opts[:path], config, fn _ -> do_run(args |> parse_args) end)
-      end
-    else
-      args
-      |> parse_args
-      |> do_run
+  def run(argv) do
+    args = parse_args(argv)
+    cond do
+      Mix.Project.umbrella? && args.options.type == :app ->
+        config = [build_path: Mix.Project.build_path]
+        app = args.options.app
+        for %Mix.Dep{app: ^app, opts: opts} <- Mix.Dep.Umbrella.loaded do
+          Mix.Project.in_project(app, opts[:path], config, fn _ -> do_run(args) end)
+        end
+      Mix.Project.umbrella? ->
+        config = [build_path: Mix.Project.build_path]
+        for %Mix.Dep{app: app, opts: opts} <- Mix.Dep.Umbrella.loaded do
+          IO.puts "in #{app}.."
+          Mix.Project.in_project(app, opts[:path], config, fn _ -> do_run(args) end)
+        end
+      :else ->
+        do_run(args)
     end
   end
 
