@@ -88,7 +88,7 @@ defmodule Conform.Translate do
       # Apply datatype conversions
       convert_types(mappings, conf_table_id)
       # Build/map complex types
-      convert_complex_types(mappings, conf_table_id)
+      convert_complex_types(mappings, conf_table_id, mappings)
       # Map simple types
       apply_mappings(mappings, conf_table_id)
       # Apply translations to aggregated values
@@ -107,7 +107,8 @@ defmodule Conform.Translate do
     # Get conf item
     case Conform.Conf.get(table, key) do
       # No matches
-      [] -> convert_types(rest, table)
+      [] ->
+        convert_types(rest, table)
       # Matches requiring conversion
       results when is_list(results) ->
         datatype = mapping.datatype || :binary
@@ -124,10 +125,23 @@ defmodule Conform.Translate do
   end
 
   defp apply_mappings([], _), do: true
-  defp apply_mappings([%Mapping{name: key} = mapping | rest], table) do
-    to_key = mapping.to || key
+  defp apply_mappings([%Mapping{name: key, datatype: datatype} = mapping | rest], table) do
+    wildcard? = is_wildcard?(key)
+    to_key    = mapping.to || key
     case Conform.Conf.wildcard_get(table, key) do
-      # No matches
+      # For wildcard keys, do not set defaults unless it's a complex type, and it's
+      # destination key has not yet been set to any meaningful value
+      [] when wildcard? and datatype in [:complex, [list: :complex]] ->
+        case Conform.Conf.get(table, mapping.to) do
+          [{_, nil}] ->
+            :ets.insert(table, {mapping.to, mapping.default})
+          _other ->
+            :ok
+        end
+      # We cannot set default values for wildcard keys
+      [] when wildcard? ->
+        :ok
+      # No matches, use default value
       [] ->
         :ets.insert(table, {to_key, mapping.default})
       # A single value to be mapped
@@ -147,26 +161,70 @@ defmodule Conform.Translate do
     apply_mappings(rest, table)
   end
 
-  defp convert_complex_types([], _), do: true
-  defp convert_complex_types([%Mapping{name: key, datatype: complex} = mapping | rest], table)
+  defp is_wildcard?([]),             do: false
+  defp is_wildcard?(['*'|_rest]),    do: true
+  defp is_wildcard?([[?$|_]|_rest]), do: true
+  defp is_wildcard?([_|rest]),       do: is_wildcard?(rest)
+
+  defp convert_complex_types([], _, _), do: true
+  defp convert_complex_types([%Mapping{name: key, datatype: complex} = mapping | rest], table, mappings)
     when complex in [:complex, [list: :complex]] do
       to_key = mapping.to || key
       # Build complex type
-      {selected, complex} = construct_complex_type(mapping, table)
+      {selected, complex} = construct_complex_type(mapping, table, mappings)
       # Iterate over the selected keys, deleting them from the table
-      for {selected_key, _} <- selected, do: :ets.delete(table, selected_key)
+      for {selected_key, _} <- selected do
+        :ets.delete(table, selected_key)
+      end
       # Insert the mapped value
       :ets.insert(table, {to_key, complex})
       # Move to next mapping
-      convert_complex_types(rest, table)
+      convert_complex_types(rest, table, mappings)
   end
-  defp convert_complex_types([%Mapping{} | rest], table) do
-    convert_complex_types(rest, table)
+  defp convert_complex_types([%Mapping{} | rest], table, mappings) do
+    convert_complex_types(rest, table, mappings)
   end
 
-  defp construct_complex_type(%Mapping{name: key}, table) do
+  defp starts_with?([], _b),       do: false
+  defp starts_with?(_a, []),       do: true
+  defp starts_with?([h|a], [h|b]), do: starts_with?(a, b)
+  defp starts_with?(_, _),         do: false
+
+  defp strip_prefix(['*'|name], []),      do: name
+  defp strip_prefix([[?$|_] | name], []), do: name
+  defp strip_prefix(name, []),            do: name
+  defp strip_prefix([part|name], [part|prefix]), do: strip_prefix(name, prefix)
+
+  defp construct_complex_type(%Mapping{name: key}, table, mappings) do
     # Get all records which match the current map_key + children
-    selected = Conform.Conf.wildcard_get(table, key)
+    selected = Conform.Conf.fuzzy_get(table, key)
+    # Apply default values to any missing keys of the complex type
+    prefix = Enum.take_while(key, fn '*' -> false; _ -> true end)
+    child_mappings = mappings
+    |> Enum.filter(fn %Mapping{name: name} -> starts_with?(name, prefix) end)
+    |> Enum.map(fn %Mapping{name: name, default: default} ->
+      {strip_prefix(name, prefix), default}
+    end)
+    children = Enum.map(selected, fn {name, _} -> List.first(strip_prefix(name, prefix)) end) |> Enum.uniq
+    selected = Enum.reduce(children, selected, fn child, acc ->
+      defaults = Enum.reduce(child_mappings, [], fn
+        {[], _default}, acc2 ->
+          acc2
+        {subkey, default}, acc2 ->
+          child_key = prefix ++ [child | subkey]
+          case Enum.find(acc, fn {^child_key, _} -> true; _ -> false end) do
+            nil ->
+              [{child_key, default} | acc2]
+            _ ->
+              acc2
+          end
+      end)
+      case defaults do
+        [] -> acc
+        _  -> defaults ++ acc
+      end
+    end)
+    # Generate a recursive keywordlist structure representing the type
     complex  = Conform.Utils.results_to_tree(selected, key)
     # We return the selected items as well as the constructed type so that
     # we can perform additional actions against those results (such as deletion)

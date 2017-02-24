@@ -41,8 +41,6 @@ There are additional options for these tasks, use `mix help <task>` to view thei
 
 ## Usage with Distillery
 
-NOTE: Please use at least version 0.11 of Distillery, as the convention for hooks has changed.
-
 All you need to use Conform with Distillery is to set the plugin in your release config:
 
 ```elixir
@@ -53,7 +51,7 @@ release :test do
 end
 ```
 
-As of current master, you can remove the old configuration which set the `pre_start` hook.
+In 2.1+, you can remove the old configuration which set the `pre_start` hook.
 
 ## Conf files and Schema files
 
@@ -71,23 +69,23 @@ lager.handlers.file.error = /var/log/error.log
 lager.handlers.file.info = /var/log/console.log
 
 # Remote database hosts
-myapp.db.hosts = 127.0.0.1:8000, 127.0.0.2:8001
+my_app.db.hosts = 127.0.0.1:8000, 127.0.0.2:8001
 
 # Just some atom.
-myapp.some_val = foo
+my_app.some_val = foo
 
 # Determine the type of thing.
 # * all:  use everything
 # * some: use a few things
 # * none: use nothing
 # Allowed values: all, some, none
-myapp.another_val = all
+my_app.another_val = all
 
 # complex data types with wildcard support
-complex_list.first.username = "username1"
-complex_list.first.age = 20
-complex_list.second.username = "username2"
-complex_list.second.age = 40
+my_app.complex_list.first.username = "username1"
+my_app.complex_list.first.age = 20
+my_app.complex_list.second.username = "username2"
+my_app.complex_list.second.age = 40
 ```
 
 Short and sweet, and most importantly, easy for sysadmins and users to understand and modify. The real power of conform though is when you dig into the schema file. It allows you to define documentation, mappings between friendly setting names and specific application settings in the underlying sys.config, define validation of values via datatype specifications, provide default values, and transform simplified values from the .conf into something more meaningful to your application using translation functions.
@@ -103,7 +101,7 @@ A schema is basically a single data structure. A keyword list, containing the fo
       doc: """
       Choose the logging level for the console backend.
       """,
-      to: "lager.handlers",
+      to: "lager.handlers.lager_console_backend",
       datatype: [enum: [:info, :error]],
       default: :info
     ],
@@ -111,7 +109,7 @@ A schema is basically a single data structure. A keyword list, containing the fo
       doc: """
       Specify the path to the error log for the file backend
       """,
-      to: "lager.handlers",
+      to: "lager.handlers.lager_file_backend.error",
       datatype: :binary,
       default: "/var/log/error.log"
     ],
@@ -119,31 +117,37 @@ A schema is basically a single data structure. A keyword list, containing the fo
       doc: """
       Specify the path to the console log for the file backend
       """,
-      to: "lager.handlers",
+      to: "lager.handlers.lager_file_backend.info",
       datatype: :binary,
       default: "/var/log/console.log"
     ],
-    "myapp.db.hosts": [
+    "my_app.db.hosts": [
       doc: "Remote database hosts",
-      to: "myapp.db.hosts",
+      to: "my_app.db.hosts",
       datatype: [list: :ip],
       default: [{"127.0.0.1", "8001"}]
     ],
-    "myapp.some_val": [
+    "my_app.some_val": [
       doc:      "Just some atom.",
-      to:       "myapp.some_val",
+      to:       "my_app.some_val",
       datatype: :atom,
       default:  :foo
     ],
+    "my_app.another_val": [
+      doc: "Just another enum",
+      to: "my_app.another_val",
+      datatype: :atom,
+      default: :none
+    ],
     "my_app.complex_list.*": [
       to: "my_app.complex_list",
-      datatype: [:complex],
+      datatype: [list: :complex],
       default: []
     ],
-    "my_app.complex_list.*.type": [
+    "my_app.complex_list.*.username": [
       to: "my_app.complex_list",
-      datatype: :atom,
-      default:  :undefined
+      datatype: :binary,
+      required: true
     ],
     "my_app.complex_list.*.age": [
       to: "my_app.complex_list",
@@ -153,41 +157,25 @@ A schema is basically a single data structure. A keyword list, containing the fo
   ],
 
   transforms: [
-    "myapp.another_val": fn val ->
-      case val do
-        :all  -> {:on, [debug: true, tracing: true]}
-        :some -> {:on, [debug: true]}
-        :none -> {:off, []}
-        _     -> {:off, []}
+    "my_app.another_val": fn conf ->
+      case Conform.Conf.get(conf, "my_app.another_val") do
+        [{_, :all}]  -> {:on, [debug: true, tracing: true]}
+        [{_, :some}] -> {:on, [debug: true]}
+        [{_, :none}] -> {:off, []}
+        _            -> {:off, []}
       end
     end,
-    "lager.handlers.console.level": fn
-      _mapping, level, nil when level in [:info, :error] ->
-          [lager_console_backend: level]
-      _mapping, level, acc when level in [:info, :error] ->
-          acc ++ [lager_console_backend: level]
-      _, level, _ ->
-        IO.puts("Unsupported console logging level: #{level}")
-        exit(1)
+    "lager.handlers": fn conf ->
+      backends = Conform.Conf.find(conf, "lager.handlers.$backend")
+      |> Enum.reduce([], fn
+        {[_,_,'lager_file_backend', level], path}, acc ->
+          [{:lager_file_backend, [level: :"#{level}", file: path]}|acc]
+        {[_,_,'lager_console_backend'], level}, acc ->
+          [{:lager_console_backend, level}|acc]
+      end)
+      Conform.Conf.remove(conf, "lager.handlers.$backend")
+      backends
     end,
-    "lager.handlers.file.error": fn
-      _, path, nil ->
-        [lager_file_backend: [file: path, level: :error]]
-      _, path, acc ->
-        acc ++ [lager_file_backend: [file: path, level: :error]]
-    end,
-    "lager.handlers.file.info": fn
-      _, path, nil ->
-        [lager_file_backend: [file: path, level: :info]]
-      _, path, acc ->
-        acc ++ [lager_file_backend: [file: path, level: :info]]
-    end,
-    "my_app.complex_list.*": fn _, {key, value_map}, acc ->
-    [[name: key,
-      username: value_map[:username],
-      age:  value_map[:age]
-     ] | acc]
-    end
   ]
 ]
 ```
@@ -205,7 +193,7 @@ Mappings are defined by four key properties (there are more, just see the `Confo
 
 - `:doc`, documentation on what this setting is, and how to use it
 - `:to`, if you want friendly names for not so friendly app settings, `:to` tells conform what setting this mapping applies to in the generated `.config`
-- `:datatype`, the datatype of the value, currently supports binary, charlist, atom, integer, float, ip (a tuple of strings `{ip, port}`), enum, and lists of one of those types. I currently am planning on supporting user-defined types, but that work has not yet been completed.
+- `:datatype`, the datatype of the value, currently supports binary, charlist, atom, integer, float, ip (a tuple of strings `{ip, port}`), enum, and lists of one of those types.
 - `:default`, optional, the value to use if one is not supplied for this setting. Should be the same form as the datatype for the setting. So for example, if you have a setting, `myapp.foo`, with a datatype of `[enum: [:info, :warn, :error]]`, then your default value should be one of those three atoms.
 
 ### Transforms
@@ -217,19 +205,16 @@ After all settings have been mapped, each of the transforms is executed with the
 The following is the output configuration from conform using the .conf and .schema.exs files shown above:
 
 ```erlang
-[{lager, [
-  {handlers, [
-    {lager_console_backend, info},
-    {lager_file_backend, [{file, "var/log/error.log"},    {level, error}]},
-    {lager_file_backend, [{file, "/var/log/console.log"}, {level, info}]}
-  ]}]},
- {myapp, [
-  {another_val, {on, [{debug, true}, {tracing, true}]}},
-  {some_val, foo},
-  {db, [{hosts, [{"127.0.0.1", "8001"}]}]},
-  [complex_list: [first: %{age: 20, username: "username1"},
-                  second: %{age: 40, username: "username2"}]]
-]}].
+[lager: [handlers: [
+             lager_console_backend: :info,
+             lager_file_backend: [file: "/var/log/console.log", level: :info],
+             lager_file_backend: [file: "/var/log/error.log",    level: :error]
+           ]],
+ my_app: [another_val: {:on, [{:debug, true}, {:tracing, true}]},
+          complex_list: [first: [age: 20, username: "username1"],
+                        second: [age: 40, username: "username2"]],
+          db: [hosts: [{"127.0.0.1", "8000"}, {"127.0.0.2", "8001"}]],
+          some_val: :foo]]
 ```
 
 As you can see, if your sysadmins had to work with the above, versus the .conf, it would be quite prone to mistakes, and much harder to understand, particularly with the lack of comments or documentation.
@@ -257,7 +242,7 @@ If you are using `exrm` and need to import any applications from the `your_app/d
 ]
 ```
 
-Will be created archive with the `myapp.schema.ez` name in the your release which will contain the `my_app_dep1` and `my_app_dep2` applications. During the `sys.config` will be generated by conform script, the applications from the archive will be loaded and you can use any public API from these applications in your transforms. Conform also allows to use a schema with imports without `exrm`. There is the special `conform.archive` mix task that takes one parameter - path of the schema:
+Will be created archive with the `myapp.schema.ez` name in the your release which will contain the `my_app_dep1` and `my_app_dep2` applications. During the `sys.config` will be generated by conform script, the applications from the archive will be loaded and you can use any public API from these applications in your transforms. Conform also allows to use a schema with imports without `distillery`. There is the special `conform.archive` mix task that takes one parameter - path of the schema:
 
 ```
 mix conform.archive myapp/config/myapp.schema.exs

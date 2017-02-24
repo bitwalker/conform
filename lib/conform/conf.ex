@@ -1,8 +1,7 @@
 defmodule Conform.Conf do
   @moduledoc """
   This module is exposed to schemas for usage in transformations, it
-  contains utility functions for fetching configuration information from
-  the current config state.
+  contains utility functions for fetching configuration information from the current config state.
   """
 
   @doc """
@@ -72,25 +71,89 @@ defmodule Conform.Conf do
     # Execute query
     case wildcard_get(table, query) do
       {:error, _} = err -> err
-      results           -> Enum.map(results, fn {key, _, value} -> {key, value} end)
+      results           -> Enum.map(results, fn {key, _vars, value} -> {key, value} end)
     end
   end
 
   @doc false
   def wildcard_get(table, query) when is_list(query) do
+    # Generate query variables for key parts which start with $
+    match_spec = query
+    |> Enum.with_index
+    |> Enum.map(fn {[?$|_], i} -> {:'$#{i+1}', i}; {[?*], i} -> {:'$#{i+1}', i}; {k, _} -> {k, nil} end)
+    variables  = match_spec
+    |> Enum.filter(fn {_, nil} -> false; _ -> true end)
+    |> Enum.map(fn {var, i} -> {{Enum.at(query, i), var}} end)
+    match_spec = Enum.map(match_spec, fn {k, _} -> k end)
+    :ets.select(table, [{{match_spec, :'$100'}, [], [{{match_spec, variables, :'$100'}}]}])
+  end
+
+  @doc """
+  Selects all keys which match the provided fuzzy search.
+
+  ## Examples
+
+      iex> table = :ets.new(:test, [:set, keypos: 1])
+      ...> :ets.insert(table, {['lager', 'handlers', 'console', 'level'], :info})
+      ...> :ets.insert(table, {['lager', 'handlers', 'file', 'error'], '/var/log/error.log'})
+      ...> #{__MODULE__}.fuzzy_get(table, "lager.handlers.*")
+      [{['lager', 'handlers', 'console', 'level'], :info}]
+      ...> #{__MODULE__}.fuzzy_get(table, "lager.handlers.$backend")
+      [{['lager', 'handlers', 'console', 'level'], :info},
+      {['lager', 'handlers', 'file', 'error'], '/var/log/error.log'}]
+
+  """
+  def fuzzy_get(table, key) when is_binary(key), do: fuzzy_get(table, get_key_path(key))
+  def fuzzy_get(table, query) when is_list(query) do
     # Bind variables elements of the query to ETS match variables
-    query_parts = query
-                  |> Enum.with_index
-                  |> Enum.map(fn {[?$|_], i} -> {:'$#{i+1}', i}; {k, _} -> {k, nil} end)
+    match_spec = query
+    |> Enum.with_index
+    |> Enum.map(fn {[?$|_], i} -> {:'$#{i+1}', i}; {k, _} -> {k, nil} end)
+    variables  = match_spec
+    |> Enum.filter(fn {_, nil} -> false; _ -> true end)
+    |> Enum.map(fn {var, i} -> {{Enum.at(query, i), var}} end)
+
+    # Generate match spec which behaves like matching on the head of a list,
+    # e.g. [el1, el2 | rest]
+    {match_spec_wild, wild?} = case List.last(match_spec) do
+                    {'*', _} ->
+                      {head, [{k,_}|_]} = Enum.split(match_spec, length(match_spec) - 2)
+                      list = head ++ [{:|, [], [k, :'$99']}]
+                      {qp, _} = Code.eval_quoted(list)
+                      {qp, true}
+                    _ ->
+                      {match_spec, false}
+                  end
     # Get list of variables to select, paired with their original names
-    variables  = query_parts
-                 |> Enum.filter(fn {_, nil} -> false; _ -> true end)
-                 |> Enum.map(fn {var, i} -> {{Enum.at(query, i), var}} end)
     # Destruct with_index tuple
-    query_parts  = Enum.map(query_parts, fn {part, _} -> part end)
+    match_spec_final = strip_index_for_query(match_spec_wild, [])
+    match_body = strip_index_for_query(match_spec, [])
     # Prepare query
-    select_expr = [{{query_parts, :'$100'}, [], [{{query_parts, variables, :'$100'}}]}]
+    select_expr = cond do
+      wild? ->
+        [{{match_spec_final, :'$100'}, [], [{{match_body, :'$99', variables, :'$100'}}]}]
+      :else ->
+        [{{match_spec_final, :'$100'}, [], [{{match_body, variables, :'$100'}}]}]
+    end
     :ets.select(table, select_expr)
+    |> Enum.map(fn
+      {_key, _vars, _val} = result ->
+        result
+      {key, wildcard, _vars, val} ->
+        {head, _} = Enum.split(key, length(key) - 1)
+        {head++wildcard, val}
+    end)
+  end
+
+  defp strip_index_for_query([], acc),     do: acc
+  defp strip_index_for_query([{k,_}|t], acc) do
+    strip_index_for_query(t, acc ++ [k])
+  end
+  defp strip_index_for_query([k|t], acc) when is_list(t) do
+    strip_index_for_query(t, acc ++ [k])
+  end
+  defp strip_index_for_query([k|t], acc) do
+    acc ++ [k|t]
   end
 
   @doc """
@@ -188,7 +251,6 @@ defmodule Conform.Conf do
   # [{['lager', 'handlers', 'console', 'level'], 'info'},
   #  {['lager', 'handlers', 'file', 'error'], '/var/log/error.log'},
   #  {['lager', 'handlers', 'file', 'info'], '/var/log/console.log'}]
-  #
   defp get_matches(table, query) do
     case :ets.select(table, build_match_expr(query)) do
       {:error, _} = err -> err
