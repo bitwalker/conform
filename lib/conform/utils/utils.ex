@@ -227,8 +227,9 @@ defmodule Conform.Utils do
   configuration directory.
   """
   def src_conf_dir(app) do
-    if Mix.Project.umbrella? and is_app_loaded?(:distillery) do
-      Path.join([File.cwd!, "apps", "#{app}", "config"])
+    umbrella_app = Path.join([File.cwd!, "apps", "#{app}"])
+    if Mix.Project.umbrella? and is_app_loaded?(:distillery) and File.exists?(umbrella_app) do
+      Path.join([umbrella_app, "config"])
     else
       Path.join([File.cwd!, "config"])
     end
