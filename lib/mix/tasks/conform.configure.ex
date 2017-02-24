@@ -22,7 +22,7 @@ defmodule Mix.Tasks.Conform.Configure do
   defp do_run(_) do
     app         = Mix.Project.config |> Keyword.get(:app)
     schema_path = Conform.Schema.schema_path(app)
-    output_path = Path.join([File.cwd!, "config", "#{app}.conf"])
+    output_path = Path.join([File.cwd!, "config", "#{app}.#{Mix.env}.conf"])
 
     # Check for conditions which prevent us from continuing
     continue? = case File.exists?(schema_path) do
