@@ -13,6 +13,8 @@ defmodule Conform.Mixfile do
      elixir: "~> 1.3",
      escript: [main_module: Conform],
      compilers: compilers(@do_peg_compile?),
+     build_embedded: Mix.env == :prod,
+     start_permanent: Mix.env == :prod,
      description: description(),
      package: package(),
      docs: docs(),
