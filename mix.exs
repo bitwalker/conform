@@ -15,6 +15,7 @@ defmodule Conform.Mixfile do
      compilers: compilers(@do_peg_compile?),
      description: description(),
      package: package(),
+     docs: docs(),
      deps: deps()]
   end
 
@@ -30,11 +31,19 @@ defmodule Conform.Mixfile do
      {:ex_doc, "~> 0.13", only: :dev}]
   end
 
-  defp description, do: "Easy release configuration for Elixir apps."
+  defp description, do: "Easy, powerful, and extendable configuration tooling for releases."
   defp package do
-    [ files: ["lib", "src", "priv", "mix.exs", "README.md", "LICENSE"],
-      maintainers: ["Paul Schoenfelder"],
-      licenses: ["MIT"],
-      links: %{ "GitHub": "https://github.com/bitwalker/conform" } ]
+    [files: ["lib", "src", "priv", "mix.exs", "README.md", "LICENSE"],
+     maintainers: ["Paul Schoenfelder"],
+     licenses: ["MIT"],
+     links: %{ "GitHub": "https://github.com/bitwalker/conform" }]
+  end
+  defp docs do
+    [main: "getting-started",
+     extras: [
+       "docs/Getting Started.md",
+       "docs/Custom Types.md",
+       "docs/Integrating with Distillery.md"
+     ]]
   end
 end
