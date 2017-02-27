@@ -116,7 +116,7 @@ defmodule Conform.ReleasePlugin do
   ## Concatenantes all conf files into a single umbrella conf file
   defp generate_umbrella_conf(release) do
     conf_files = Enum.reduce(umbrella_apps_paths(), [], fn({name, path}, acc) ->
-      conf_path = case File.exists(Path.join(path, "config/#{name}.#{Mix.env}.conf")) do
+      conf_path = case File.exists?(Path.join(path, "config/#{name}.#{Mix.env}.conf")) do
                     true  -> Path.join(path, "config/#{name}.#{Mix.env}.conf")
                     false -> Path.join(path, "config/#{name}.conf")
                   end
