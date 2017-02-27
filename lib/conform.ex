@@ -54,6 +54,7 @@ defmodule Conform do
       --output-dir <path>:  Outputs the .config file to <path>/<sys|name>.config
       --config <config>:    Merges the translated configuration over the top of
                             <config> before output
+      --code-path <path>:   Adds the given path to the current code path, accepts wildcards.
       -h | --help:          Prints this help
     """
     System.halt(0)
