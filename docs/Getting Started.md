@@ -179,6 +179,7 @@ A schema is basically a single data structure. A keyword list, containing the fo
       to: "lager.handlers.lager_file_backend.info",
       datatype: :binary,
       default: "/var/log/console.log"
+      env_var: "LAGER_INFO_FILE"
     ],
     "my_app.db.hosts": [
       doc: "Remote database hosts",
@@ -254,6 +255,7 @@ Mappings are defined by four key properties (there are more, just see the `Confo
 - `:to`, if you want friendly names for not so friendly app settings, `:to` tells conform what setting this mapping applies to in the generated `.config`
 - `:datatype`, the datatype of the value, currently supports binary, charlist, atom, integer, float, ip (a tuple of strings `{ip, port}`), enum, and lists of one of those types.
 - `:default`, optional, the value to use if one is not supplied for this setting. Should be the same form as the datatype for the setting. So for example, if you have a setting, `myapp.foo`, with a datatype of `[enum: [:info, :warn, :error]]`, then your default value should be one of those three atoms.
+- `:env_var`, optional, the environment variable to use for sourcing the input value if the option is not set explicitly in the `.conf`. If this environment variable is not set, then `:default` will be used.
 
 #### Transforms
 
@@ -263,11 +265,13 @@ After all settings have been mapped, each of the transforms is executed with the
 
 The following is the output configuration from Conform using the `.conf` and `.schema.exs` files shown above:
 
+*NOTE*: Assume that `LAGER_INFO_FILE=/var/log/info.log` is set in the environment for purposes of this demonstration.
+
 ```erlang
 [lager: [handlers: [
              lager_console_backend: :info,
-             lager_file_backend: [file: "/var/log/console.log", level: :info],
-             lager_file_backend: [file: "/var/log/error.log",    level: :error]
+             lager_file_backend: [file: "/var/log/info.log", level: :info],
+             lager_file_backend: [file: "/var/log/error.log",  level: :error]
            ]],
  my_app: [another_val: {:on, [{:debug, true}, {:tracing, true}]},
           complex_list: [first: [age: 20, username: "username1"],

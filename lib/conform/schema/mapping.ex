@@ -14,6 +14,7 @@ defmodule Conform.Schema.Mapping do
   - `datatype` is the type of the value this setting will be mapped to, see the documentation
   for information on what datatypes are available. User-defined types are also possible.
   - `default` the default value to use if one is not provided in the .conf
+  - `env_var` if set, will use the value of the given environment variable as the default value for this option
   - `doc` the documentation comment which will accompany this setting in the generated .conf
   - `see` the name of another setting which you wrote a `doc` for, but which also describes this
   setting. Used when describing how multiple settings work together, as it's just a pointer to
@@ -33,6 +34,7 @@ defmodule Conform.Schema.Mapping do
             to: nil,
             datatype: :binary,
             default: nil,
+            env_var: nil,
             doc: "",
             see: "",
             commented: false,
@@ -52,6 +54,7 @@ defmodule Conform.Schema.Mapping do
   defp do_from([{:to, to}|rest], mapping) when is_binary(to),       do: do_from(rest, %{mapping | :to => to})
   defp do_from([{:datatype, dt}|rest], mapping),                    do: do_from(rest, %{mapping | :datatype => unquote_field(dt)})
   defp do_from([{:default, default}|rest], mapping),                do: do_from(rest, %{mapping | :default => default})
+  defp do_from([{:env_var, env_var}|rest], mapping),                do: do_from(rest, %{mapping | :env_var => env_var})
   defp do_from([{:doc, doc}|rest], mapping) when is_binary(doc),    do: do_from(rest, %{mapping | :doc => doc})
   defp do_from([{:see, see}|rest], mapping) when is_binary(see),    do: do_from(rest, %{mapping | :see => see})
   defp do_from([{:hidden, h}|rest], mapping) when is_boolean(h),    do: do_from(rest, %{mapping | :hidden => h})

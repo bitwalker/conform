@@ -48,6 +48,12 @@ defmodule Conform.Translate do
         _ ->
           <<result::binary, comments::binary, ?\n>>
       end
+      result = case mapping.env_var do
+                 nil -> result
+                 var ->
+                   default_msg = "# If not set, will use value of #{var} environment variable"
+                   <<result::binary, default_msg::binary, ?\n>>
+               end
       case mapping.default do
         nil ->
           <<result::binary, "# #{key} = \n\n">>
@@ -112,7 +118,14 @@ defmodule Conform.Translate do
       # Matches requiring conversion
       results when is_list(results) ->
         datatype = mapping.datatype || :binary
-        default  = mapping.default
+        default  = case mapping.env_var do
+                     nil -> mapping.default
+                     var when is_binary(var) ->
+                       case System.get_env(var) do
+                         nil -> mapping.default
+                         val -> parse_datatype(datatype, val, mapping)
+                       end
+                   end
         for {conf_key, value} <- results, not datatype in [:complex, [list: :complex]] do
           parsed = case value do
             nil -> default
@@ -143,7 +156,15 @@ defmodule Conform.Translate do
         :ok
       # No matches, use default value
       [] ->
-        :ets.insert(table, {to_key, mapping.default})
+        default = case mapping.env_var do
+          nil -> mapping.default
+          var ->
+            case System.get_env(var) do
+              nil -> mapping.default
+              val -> parse_datatype(datatype, val, mapping)
+            end
+        end
+        :ets.insert(table, {to_key, default})
       # A single value to be mapped
       [{from_key, vars, value}] ->
         :ets.delete(table, from_key)
@@ -202,8 +223,17 @@ defmodule Conform.Translate do
     prefix = Enum.take_while(key, fn '*' -> false; _ -> true end)
     child_mappings = mappings
     |> Enum.filter(fn %Mapping{name: name} -> starts_with?(name, prefix) end)
-    |> Enum.map(fn %Mapping{name: name, default: default} ->
-      {strip_prefix(name, prefix), default}
+    |> Enum.map(fn %Mapping{name: name, default: default} = mapping ->
+      stripped = strip_prefix(name, prefix)
+      case mapping.env_var do
+        nil ->
+          {stripped, default}
+        var ->
+          case System.get_env(var) do
+            nil -> {stripped, default}
+            val -> {stripped, parse_datatype(mapping.datatype, val, mapping)}
+          end
+      end
     end)
     children = Enum.map(selected, fn {name, _} -> List.first(strip_prefix(name, prefix)) end) |> Enum.uniq
     selected = Enum.reduce(children, selected, fn child, acc ->
