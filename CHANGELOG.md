@@ -3,6 +3,43 @@
 All notable changes to this project will be documented in this file (at least to the extent possible, I am not infallible sadly).
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## 2.2.1
+
+### Added
+
+- Support for getting default values from environment
+
+## 2.2.0
+
+### Added
+
+- New, improved docs
+
+### Changed
+
+- Require Elixir 1.3
+- `.conf` files are now generated with env as part of the extension, e.g. `.prod.conf`,
+ this change is backwards compatible, as it will fallback to looking for just `.conf`
+- Use `pre_configure` hook in Distillery 1.2
+
+### Fixed
+
+- Fixed incorrect documentation
+- Fallback to `$CWD/config` if app-specific config doesn't exist for umbrella app (#95)
+- Improve readability of `conform.effective` task
+- Improve handling of complex types to reduce need for transforms
+- Fix loading of modules when in a release
+- Fix loading of plugins when debug info is stripped
+- Fail nicely if no .conf is present when running conform.effective (#65)
+- Fix handling of raw binaries (#75)
+- Fix handling of single-element nested lists (#68)
+- Fix handling of mixed lists or other odd complex types (#47)
+- Fix issue with schema stringification (#85)
+- Fix incorrect charlist detection (#107)
+- Ensure quoted/unquoted strings are both handled in tests
+- Remove hardcoded typing for two-element tuples (#102)
+
+
 ## 2.1.1
 
 - Fixed stringification of guard clauses
