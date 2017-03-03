@@ -126,14 +126,15 @@ defmodule ConformCodeTest do
       ],
       "myapp.some_pattern": [
         default: [
-          ~r"[A-Z]+"
+          ~r/[A-Z]+/
         ]
       ]
     ]
     """ |> String.strip(?\n)
 
     {:ok, quoted} = data |> Code.string_to_quoted
-    result = (quoted |> Conform.Utils.Code.stringify)
+    {schema, _} = Code.eval_quoted(quoted, file: "nofile", line: 0)
+    result = (schema |> Conform.Utils.Code.stringify)
     assert expected == result
   end
 
@@ -202,44 +203,4 @@ defmodule ConformCodeTest do
     {:ok, quoted} = data |> Code.string_to_quoted
     assert expected == (quoted |> Conform.Utils.Code.stringify)
   end
-
-  test "can stringify a module" do
-    data = """
-    defmodule Test do
-      def foo(x), do: x
-      def foo(x, y) do
-        case {x, y} do
-          {:foo, :bar} -> :foobar
-          {:baz, :qux} -> :bazqux
-          {^x, ^y} ->
-            result = "\#{x}\#{y}" |> String.to_atom
-            result
-        end
-      end
-    end
-    """
-    expected = """
-    defmodule(Test) do
-      def(foo(x)) do
-        x
-      end
-      def(foo(x, y)) do
-        case({x, y}) do
-          {:foo, :bar} ->
-            :foobar
-          {:baz, :qux} ->
-            :bazqux
-          {^x, ^y} ->
-            result = \"\#{x}\#{y}\" |> String.to_atom()
-            result
-        end
-      end
-    end
-    """ |> String.strip(?\n)
-
-    {:ok, quoted} = data |> Code.string_to_quoted
-    result = (quoted |> Conform.Utils.Code.stringify)
-    assert expected == result
-  end
-
 end

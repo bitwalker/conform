@@ -39,7 +39,9 @@ defmodule Conform.Utils.Code do
   defp do_stringify(%Regex{} = regex) do
     "~r/" <> Regex.source(regex) <> "/"
   end
-  defp do_stringify(term), do: Macro.to_string(term)
+  defp do_stringify(term) do
+    "#{inspect term}"
+  end
 
   ##################
   # List Formatting
@@ -66,23 +68,23 @@ defmodule Conform.Utils.Code do
   # 1 or more of any other element type
   defp format_list([h|t], acc) do
     case t do
-      [] -> format_list(t, acc <> "\n" <> tabs(get_indent()) <> Macro.to_string(h))
-      _  -> format_list(t, acc <> "\n" <> tabs(get_indent()) <> Macro.to_string(h) <> ",")
+      [] -> format_list(t, acc <> "\n" <> tabs(get_indent()) <> "#{inspect(h)}")
+      _  -> format_list(t, acc <> "\n" <> tabs(get_indent()) <> "#{inspect(h)}" <> ",")
     end
   end
   # A list item which is a key/value pair with a function as the value
   defp format_list_item({key, {:fn, _, _} = fndef}, acc) do
-    <<?:, keystr::binary>> = Macro.to_string(key)
+    <<?:, keystr::binary>> = "#{inspect key}"
     acc <> "\n" <> tabs(get_indent()) <> keystr <> ": " <> format_function(fndef)
   end
   # Just a tuple
   defp format_list_item({a, _} = tuple, acc) when not is_atom(a) do
-    acc <> "\n" <> tabs(get_indent()) <> Macro.to_string(tuple)
+    acc <> "\n" <> tabs(get_indent()) <> "#{inspect tuple}"
   end
   # A key/value pair list item
   defp format_list_item({key, value}, acc) do
     stringified_value      = do_stringify(value)
-    case Macro.to_string(key) do
+    case "#{inspect key}" do
       <<?:, keystr::binary>> ->
         acc <> "\n" <> tabs(get_indent()) <> keystr <> ": " <> stringified_value
       keystr ->
@@ -91,7 +93,7 @@ defmodule Conform.Utils.Code do
   end
   # Any other list item value
   defp format_list_item(val, acc) do
-    acc <> "\n" <> tabs(get_indent()) <> Macro.to_string(val)
+    acc <> "\n" <> tabs(get_indent()) <> "#{inspect val}"
   end
 
   #######################

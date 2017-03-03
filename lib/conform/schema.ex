@@ -86,11 +86,27 @@ defmodule Conform.Schema do
   """
   @spec parse(String.t) :: {:ok, term} | {:error, {integer, binary, binary}}
   def parse(binary) when is_binary(binary) do
-    case Code.string_to_quoted(binary) do
-      {:ok, {:__block__, _, [_, quoted]}} -> {:ok, quoted}
-      {:ok, quoted} -> {:ok, quoted}
+    res = case Code.string_to_quoted(binary) do
+      {:ok, {:__block__, _, [_, quoted]}} ->
+        {:ok, quoted}
+      {:ok, quoted} ->
+        {:ok, quoted}
       {:error, _} = err -> err
     end
+    case res do
+      {:ok, quoted} ->
+        case Code.eval_quoted(quoted, file: "nofile", line: 0) do
+          {schema, _} when is_list(schema) ->
+            {:ok, schema}
+          {other, _} ->
+            {:error, {0, "Invalid schema: ", "Expected schema, but got #{inspect other}"}}
+        end
+      {:error, _} = err ->
+        err
+    end
+  rescue
+    e in [CompileError] ->
+      {:error, {0, "Invalid schema: ", Exception.message(e)}}
   end
 
   @doc """
@@ -134,8 +150,7 @@ defmodule Conform.Schema do
   end
 
   # Ignore the documentation block if one is present
-  defp from({:__block__, _, [_, quoted]}, path), do: from(quoted, path)
-  defp from(quoted, path) do
+  defp from(quoted, path) when is_list(quoted) do
     # Load imports from archive if present
     archive_path = String.replace(path, ".exs", ".ez")
     load_archive(archive_path)

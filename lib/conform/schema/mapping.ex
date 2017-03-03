@@ -45,14 +45,14 @@ defmodule Conform.Schema.Mapping do
 
   def from_quoted({name, mapping}) when is_list(mapping) do
     case Keyword.keyword?(mapping) do
-      false -> raise Conform.Schema.SchemaError, message: "Invalid mapping for #{name}: `#{Macro.to_string(mapping)}`."
+      false -> raise Conform.Schema.SchemaError, message: "Invalid mapping for #{name}: `#{inspect(mapping)}`."
       true  ->
         do_from(mapping, %Mapping{name: Atom.to_string(name)})
     end
   end
 
   defp do_from([{:to, to}|rest], mapping) when is_binary(to),       do: do_from(rest, %{mapping | :to => to})
-  defp do_from([{:datatype, dt}|rest], mapping),                    do: do_from(rest, %{mapping | :datatype => unquote_field(dt)})
+  defp do_from([{:datatype, dt}|rest], mapping),                    do: do_from(rest, %{mapping | :datatype => dt})
   defp do_from([{:default, default}|rest], mapping),                do: do_from(rest, %{mapping | :default => default})
   defp do_from([{:env_var, env_var}|rest], mapping),                do: do_from(rest, %{mapping | :env_var => env_var})
   defp do_from([{:doc, doc}|rest], mapping) when is_binary(doc),    do: do_from(rest, %{mapping | :doc => doc})
@@ -61,17 +61,7 @@ defmodule Conform.Schema.Mapping do
   defp do_from([{:commented, c}|rest], mapping) when is_boolean(c), do: do_from(rest, %{mapping | :commented => c})
   defp do_from([{:include_default, default}|rest], mapping) when is_binary(default),
     do: do_from(rest, %{mapping | :include_default => default})
-  defp do_from([{:validators, vs}|rest], mapping) when is_list(vs), do: do_from(rest, %{mapping | :validators => unquote_field(vs)})
+  defp do_from([{:validators, vs}|rest], mapping) when is_list(vs), do: do_from(rest, %{mapping | :validators => vs})
   defp do_from([_|rest], mapping), do: do_from(rest, mapping)
   defp do_from([], mapping),       do: mapping
-
-  defp unquote_field(field) do
-    try do
-      {unquoted, _} = Code.eval_quoted(field)
-      unquoted
-    rescue
-      _ ->
-        field
-    end
-  end
 end

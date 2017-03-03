@@ -45,7 +45,6 @@ defmodule Conform.Schema.Transform do
   end
   def from_quoted({key, transform}) do
     definition = transform
-    {transform, _} = Code.eval_quoted(transform)
     case is_function(transform, 1) do
       true ->
         %Transform{path: Atom.to_string(key), definition: definition, transform: transform}

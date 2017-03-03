@@ -38,6 +38,18 @@ defmodule ConfigTest do
     File.rm!(output_path)
   end
 
+  test "issue #114" do
+    path = Path.join(["test", "configs", "issue_114.exs"])
+    output_path = Path.join(["test", "configs", "issue_114.schema.exs"])
+    config_raw = path |> Mix.Config.read! |> Macro.escape
+
+    schema = Conform.Schema.from_config(config_raw)
+    assert %Schema{} = schema
+    assert :ok = Conform.Schema.write_quoted(schema, output_path)
+    assert %Schema{} = Conform.Schema.load!(output_path)
+    File.rm!(output_path)
+  end
+
   test "issue #75" do
     path = Path.join(["test", "configs", "raw_binary.exs"])
     output_path = Path.join(["test", "configs", "raw_binary.schema.exs"])
@@ -49,6 +61,15 @@ defmodule ConfigTest do
     assert %Schema{} = schema
     assert :ok = Conform.Schema.write_quoted(schema, output_path)
     File.rm!(output_path)
+  end
+
+  test "issue #113" do
+    schema_path   = Path.join(["test", "schemas", "mega_maid.schema.exs"])
+    schema = schema_path |> Conform.Schema.load!
+    conf_path = Path.join(["test", "confs", "mega_maid.conf"])
+    {:ok, conf} = Conform.Conf.from_file(conf_path)
+    sysconfig = Conform.Translate.to_config(schema, [], conf)
+    assert is_list(sysconfig)
   end
 
   test "logger example" do

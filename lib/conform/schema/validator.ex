@@ -50,7 +50,6 @@ defmodule Conform.Schema.Validator do
   end
   def from_quoted({name, validator}) when is_function(validator, 1) do
     definition = validator
-    {validator, _} = Code.eval_quoted(validator)
     case is_function(validator, 1) do
       true ->
         %Validator{name: Atom.to_string(name), definition: definition, validator: validator}
