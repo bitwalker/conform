@@ -85,7 +85,7 @@ defmodule IntegrationTest do
                    {:db, [hosts: [{"127.0.0.1", "8001"}]]}, {:some_val, :bar}, {:volume, 1}],
                  sasl: [errlog_type: :all],
                  some: ["string value": 'stringkeys'],
-                 "starting.string": [key: 'stringkeys']]
+                 "starting string": [key: 'stringkeys']]
 
     assert effective == expected
   end

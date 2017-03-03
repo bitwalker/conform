@@ -32,6 +32,9 @@ defmodule ConfTranslateTest do
     # Just some atom.
     myapp.some_val = foo
 
+    # Example of quoted keys
+    "starting string".key = empty
+
     # Determine the type of thing.
     # * active: it's going to be active
     # * passive: it's going to be passive
@@ -107,7 +110,9 @@ defmodule ConfTranslateTest do
         some_val: :bar,
         volume: 1
       ],
-      sasl:  [errlog_type: :all]
+      sasl:  [errlog_type: :all],
+      some: ["string value": nil],
+      "starting string": [key: 'empty']
     ]
     assert config == expect
   end
@@ -145,7 +150,9 @@ defmodule ConfTranslateTest do
         some_val: :bar,
         volume: 1
       ],
-      sasl:  [errlog_type: :progress]
+      sasl:  [errlog_type: :progress],
+      some: ["string value": nil],
+      "starting string": [key: 'empty']
     ]
     assert config == expect
   end

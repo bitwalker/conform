@@ -49,6 +49,17 @@
       default:  :foo,
       doc:      "Just some atom."
     ],
+    "some.string value": [
+      datatype: :charlist,
+      default: nil,
+      doc: "Example of quoted keys",
+      hidden: true,
+    ],
+    "starting string.key": [
+      datatype: :charlist,
+      default: 'empty',
+      doc: "Example of quoted keys"
+    ],
     "myapp.another_val": [
       to:       "myapp.another_val",
       datatype: [enum: [:active, :passive, :'active-debug']],

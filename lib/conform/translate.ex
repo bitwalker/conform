@@ -54,6 +54,7 @@ defmodule Conform.Translate do
                    default_msg = "# If not set, will use value of #{var} environment variable"
                    <<result::binary, default_msg::binary, ?\n>>
                end
+      key = quote_key(key)
       case mapping.default do
         nil ->
           <<result::binary, "# #{key} = \n\n">>
@@ -61,6 +62,18 @@ defmodule Conform.Translate do
           <<result::binary, "#{key} = #{write_datatype(datatype, default, key)}\n\n">>
       end
     end
+  end
+
+  defp quote_key(key) do
+    key
+    |> String.split(".")
+    |> Enum.map(fn part ->
+      case String.contains?(part, " ") do
+        true  -> "\"#{part}\""
+        false -> part
+      end
+    end)
+    |> Enum.join(".")
   end
 
   @doc """
