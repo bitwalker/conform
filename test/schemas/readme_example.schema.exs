@@ -59,7 +59,19 @@
       to: "my_app.complex_list",
       datatype: :integer,
       default: 30
-    ]
+    ],
+    "evl_daemon.storage_engines": [
+      commented: false,
+      datatype: [
+        list: [list: {:atom, :binary}]
+      ],
+      default: [
+        [type: "memory", maximum_events: "100"]
+      ],
+      doc: "Enabled storage engines and their options.",
+      hidden: false,
+      to: "evl_daemon.storage_engines"
+    ],
   ],
 
   transforms: [

@@ -9,7 +9,8 @@ defmodule ConfigTest do
     conf_path = Path.join(["test", "confs", "readme_example.conf"])
     {:ok, conf} = Conform.Conf.from_file(conf_path)
     sysconfig = Conform.Translate.to_config(schema, [], conf)
-    expected = [lager: [
+    expected = [evl_daemon: [storage_engines: [[type: "memory", maximum_events: "100"]]],
+     lager: [
          handlers: [
              lager_console_backend: :info,
              lager_file_backend: [file: "/var/log/console.log", level: :info],

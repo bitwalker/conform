@@ -136,7 +136,7 @@ defmodule Conform.Translate do
                      var when is_binary(var) ->
                        case System.get_env(var) do
                          nil -> mapping.default
-                         val -> parse_datatype(datatype, val, mapping)
+                         val -> parse_datatype(datatype, [val], mapping)
                        end
                    end
         for {conf_key, value} <- results, not datatype in [:complex, [list: :complex]] do
@@ -174,7 +174,7 @@ defmodule Conform.Translate do
           var ->
             case System.get_env(var) do
               nil -> mapping.default
-              val -> parse_datatype(datatype, val, mapping)
+              val -> parse_datatype(datatype, [val], mapping)
             end
         end
         :ets.insert(table, {to_key, default})
@@ -244,7 +244,7 @@ defmodule Conform.Translate do
         var ->
           case System.get_env(var) do
             nil -> {stripped, default}
-            val -> {stripped, parse_datatype(mapping.datatype, val, mapping)}
+            val -> {stripped, parse_datatype(mapping.datatype, [val], mapping)}
           end
       end
     end)
@@ -295,124 +295,105 @@ defmodule Conform.Translate do
   defp add_comment(line), do: "# #{line}"
 
   # Parse the provided value as a value of the given datatype
-  defp parse_datatype(:atom, value, _mapping),     do: String.to_atom("#{value}")
-  defp parse_datatype(:binary, value, _mapping),   do: sanitize(value)
-  defp parse_datatype(:charlist, value, _mapping), do: '#{sanitize(value)}'
-  defp parse_datatype(:boolean, value, %Mapping{name: name}) do
-    try do
-      case String.to_existing_atom("#{value}") do
-        true  -> true
-        false -> false
-        _     -> raise TranslateError, message: "Invalid boolean value for #{name}."
-      end
-    rescue
-      ArgumentError ->
-        raise TranslateError, message: "Invalid boolean value for #{name}."
-    end
-  end
-  defp parse_datatype(:integer, value, %Mapping{name: name}) do
-    case Integer.parse("#{value}") do
-      {num, _} -> num
-      :error   -> raise TranslateError, message: "Invalid integer value for #{name}."
-    end
-  end
-  defp parse_datatype(:float, value, %Mapping{name: name}) do
-    case Float.parse("#{value}") do
-      {num, _} -> num
-      :error   -> raise TranslateError, message: "Invalid float value for #{name}."
-    end
-  end
-  defp parse_datatype(:ip, value, %Mapping{name: name}) do
-    case String.split("#{value}", ":", trim: true) do
-      [ip, port] -> {ip, port}
-      _          -> raise TranslateError, message: "Invalid IP format for #{name}. Expected format: IP:PORT"
-    end
-  end
-  defp parse_datatype([enum: valid_values], value, %Mapping{name: name}) do
-    parsed = String.to_atom("#{value}")
-    if Enum.any?(valid_values, fn v -> v == parsed end) do
-      parsed
-    else
-      raise TranslateError, message: "Invalid enum value for #{name}."
-    end
-  end
-  defp parse_datatype([list: :ip], value, mapping) do
-    "#{value}"
-    |> String.split(",")
-    |> Enum.map(&String.strip/1)
-    |> Enum.map(&(parse_datatype(:ip, &1, mapping)))
-  end
-  defp parse_datatype([list: [list: list_type]], value, mapping) do
-    Enum.map(value, &(parse_datatype([list: list_type], &1, mapping)))
-  end
-  defp parse_datatype([list: list_types], value, mapping) when is_list(list_types) do
-    list = cond do
-      :io_lib.printable_unicode_list(value) ->
-        "#{value}"
-        |> String.split(",")
-        |> Enum.map(&String.strip/1)
-        |> Enum.map(fn element ->
-          case String.split(element, "=", trim: true) do
-            [_] -> element
-            [k, v] -> {String.trim(k), String.trim(v)}
-          end
-        end)
-      :else ->
-        value
-    end
-    Enum.map(list, fn element ->
-      case Enum.reduce(list_types, element, fn
-        _type, {:ok, _} = result -> result
+  defp parse_datatype([list: types], values, %Mapping{name: name} = mapping) when is_list(types) and length(types) > 1 do
+    Enum.map(values, fn element ->
+      res = Enum.reduce(types, element, fn
+        _type, {:ok, _} = result ->
+          result
         type, element ->
           try do
-            case parse_datatype(type, element, mapping) do
-              nil ->
-                element
-              parsed ->
-                {:ok, parsed}
+            case parse_datatype_single(type, element, mapping) do
+              nil -> element
+              parsed -> {:ok, parsed}
             end
           rescue
             _ ->
               element
           end
-          end) do
+      end)
+      case res do
         {:ok, parsed} -> parsed
         _other ->
-          name = Enum.map(mapping.name, &List.to_string/1) |> Enum.join(".")
-          raise TranslateError, message: "Invalid format for #{name}. Expected one of: #{inspect list_types}"
+          raise TranslateError, message: "Invalid format for #{stringify_key(name)}: Expected one of: #{inspect types}"
       end
     end)
   end
-  defp parse_datatype([list: list_type], value, mapping) do
-    case :io_lib.printable_unicode_list(value) do
-      true  ->
-        "#{value}"
-        |> String.split(",")
-        |> Enum.map(&String.strip/1)
-        |> Enum.map(&(parse_datatype(list_type, &1, mapping)))
-      false ->
-        Enum.map(value, &(parse_datatype(list_type, &1, mapping)))
+  defp parse_datatype([list: type], values, %Mapping{} = mapping) do
+    Enum.map(values, &parse_datatype_single(type, &1, mapping))
+  end
+  defp parse_datatype(type, [value], %Mapping{} = mapping) do
+    parse_datatype_single(type, value, mapping)
+  end
+  defp parse_datatype(type, value, %Mapping{name: name}) do
+    raise TranslateError, "Invalid value for #{stringify_key(name)}: Expected value of type `#{inspect type}`, got #{inspect value}"
+  end
+
+  defp parse_datatype_single(:atom, value, _mapping),     do: String.to_atom("#{value}")
+  defp parse_datatype_single(:binary, value, _mapping),   do: sanitize(value)
+  defp parse_datatype_single(:charlist, value, _mapping), do: '#{sanitize(value)}'
+  defp parse_datatype_single(:boolean, value, %Mapping{name: name}) do
+    try do
+      case String.to_existing_atom("#{value}") do
+        true  -> true
+        false -> false
+        _     -> raise TranslateError, message: "Invalid boolean value for #{stringify_key(name)}."
+      end
+    rescue
+      ArgumentError ->
+        raise TranslateError, message: "Invalid boolean value for #{stringify_key(name)}."
     end
   end
-  defp parse_datatype(tuple, value, mapping) when is_tuple(tuple) and is_tuple(value) do
+  defp parse_datatype_single(:integer, value, %Mapping{name: name}) do
+    case Integer.parse("#{value}") do
+      {num, _} -> num
+      :error   -> raise TranslateError, message: "Invalid integer value for #{stringify_key(name)}."
+    end
+  end
+  defp parse_datatype_single(:float, value, %Mapping{name: name}) do
+    case Float.parse("#{value}") do
+      {num, _} -> num
+      :error   -> raise TranslateError, message: "Invalid float value for #{stringify_key(name)}."
+    end
+  end
+  defp parse_datatype_single(:ip, value, %Mapping{name: name}) do
+    case String.split("#{value}", ":", trim: true) do
+      [ip, port] -> {ip, port}
+      _          -> raise TranslateError, message: "Invalid IP format for #{stringify_key(name)}. Expected format: IP:PORT"
+    end
+  end
+  defp parse_datatype_single([enum: valid_values], value, %Mapping{name: name}) do
+    parsed = String.to_atom("#{value}")
+    if Enum.any?(valid_values, fn v -> v == parsed end) do
+      parsed
+    else
+      raise TranslateError, message: "Invalid enum value for #{stringify_key(name)}."
+    end
+  end
+  defp parse_datatype_single([list: type], value, mapping) when is_list(value) do
+    Enum.map(value, &parse_datatype_single(type, &1, mapping))
+  end
+  defp parse_datatype_single([list: type], value, mapping) do
+    raise TranslateError, message: "Invalid value for #{stringify_key(mapping.name)}: Expected list of `#{inspect type}`, got: #{inspect value}"
+  end
+  defp parse_datatype_single(tuple, value, mapping) when is_tuple(tuple) and is_tuple(value) do
     type_list = Tuple.to_list(tuple)
     values = Tuple.to_list(value)
     cond do
       length(type_list) == length(values) ->
         Enum.zip(type_list, values)
         |> Enum.map(fn {type, val} ->
-          parse_datatype(type, val, mapping)
+          parse_datatype_single(type, val, mapping)
         end)
         |> List.to_tuple
       :else ->
         name = Enum.map(mapping.name, &List.to_string/1) |> Enum.join(".")
-        raise TranslateError, message: "Invalid format for #{name}. Expected #{inspect tuple}"
+        raise TranslateError, message: "Invalid format for #{stringify_key(name)}. Expected #{inspect tuple}"
     end
   end
-  defp parse_datatype({:atom, type}, {k, v}, mapping) do
-    {k, parse_datatype(type, v, mapping)}
+  defp parse_datatype_single({:atom, type}, {k, v}, mapping) do
+    {k, parse_datatype_single(type, v, mapping)}
   end
-  defp parse_datatype(datatype, value, mapping) do
+  defp parse_datatype_single(datatype, value, mapping) do
     case is_custom_type?(datatype) do
       {true, mod, _args} ->
         case apply(mod, :convert, [value, mapping]) do
@@ -535,6 +516,12 @@ defmodule Conform.Translate do
         end
       end)
     end)
+  end
+
+  defp stringify_key(key) when is_list(key) do
+    key
+    |> Enum.map(fn part -> "#{part}" end)
+    |> Enum.join(".")
   end
 
 end
