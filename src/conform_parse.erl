@@ -121,23 +121,20 @@ parse(Input) when is_binary(Input) ->
 
 -spec 'list_value'(input(), index()) -> parse_result().
 'list_value'(Input, Index) ->
-  p(Input, Index, 'list_value', fun(I,D) -> (p_seq([p_not(p_choose([p_seq([p_zero_or_more(fun 'ws'/2), fun 'crlf'/2]), fun 'comment'/2])), p_string(<<"[">>), p_one_or_more(p_seq([p_not(p_string(<<"[">>)), p_seq([p_choose([fun 'kv_value'/2, fun 'value_in_list'/2]), p_optional(p_choose([p_string(<<",\s">>), p_string(<<",">>)]))])])), p_string(<<"]">>)]))(I,D) end, fun(Node, _Idx) ->
+  p(Input, Index, 'list_value', fun(I,D) -> (p_seq([p_not(p_choose([p_seq([p_zero_or_more(fun 'ws'/2), fun 'crlf'/2]), fun 'comment'/2])), p_string(<<"[">>), p_one_or_more(p_seq([p_choose([fun 'kv_value'/2, p_choose([fun 'double_quote_value'/2, fun 'value_in_list'/2])]), p_optional(p_choose([p_string(<<",\s">>), p_string(<<",">>)]))])), p_string(<<"]">>)]))(I,D) end, fun(Node, _Idx) ->
     [_, _OpenBracket, Elems, _CloseBracket] = Node,
-    lists:map(fun([_, [Item, _]]) -> Item end, Elems)
+    lists:map(fun([Item, _]) -> Item end, Elems)
  end).
 
 -spec 'double_quote_value'(input(), index()) -> parse_result().
 'double_quote_value'(Input, Index) ->
-  p(Input, Index, 'double_quote_value', fun(I,D) -> (p_one_or_more(p_seq([p_not(p_choose([p_seq([p_zero_or_more(fun 'ws'/2), fun 'crlf'/2]), fun 'comment'/2])), p_string(<<"\"">>), p_zero_or_more(p_choose([p_string(<<"\\\\">>), p_string(<<"\\\"">>), p_seq([p_not(p_string(<<"\"">>)), p_anything()])])), p_optional(p_seq([p_optional(p_string(<<"\r">>)), p_string(<<"\n">>)])), p_string(<<"\"">>)])))(I,D) end, fun(Node, Idx) ->
-    case unicode:characters_to_list(Node) of
+  p(Input, Index, 'double_quote_value', fun(I,D) -> (p_seq([p_not(p_choose([p_seq([p_zero_or_more(fun 'ws'/2), fun 'crlf'/2]), fun 'comment'/2])), p_string(<<"\"">>), p_zero_or_more(p_choose([p_string(<<"\\\"">>), p_seq([p_not(p_string(<<"\"">>)), p_anything()])])), p_string(<<"\"">>)]))(I,D) end, fun(Node, Idx) ->
+    [_, _OpenQuote, Chars, _CloseQuote] = Node,
+    case unicode:characters_to_list(Chars) of
       {_Status, _Begining, _Rest} ->
           {error, ?FMT("Error converting value on line #~p to utf8", [line(Idx)])};
-      Chars ->
-        Unescaped = unescape_double_quotes(Chars),
-        Bin = unicode:characters_to_binary(Unescaped),
-        Len      = erlang:byte_size(Bin),
-        Unquoted = erlang:binary_part(Bin, {1, Len - 2}),
-        binary_to_list(Unquoted)
+      String ->
+        unescape_double_quotes(String)
     end
  end).
 
