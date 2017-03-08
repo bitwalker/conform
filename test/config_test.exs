@@ -67,9 +67,10 @@ defmodule ConfigTest do
   test "issue #113" do
     schema_path   = Path.join(["test", "schemas", "mega_maid.schema.exs"])
     schema = schema_path |> Conform.Schema.load!
+    config = Mix.Config.read!(Path.join(["test", "configs", "mega_maid.exs"]))
     conf_path = Path.join(["test", "confs", "mega_maid.conf"])
     {:ok, conf} = Conform.Conf.from_file(conf_path)
-    sysconfig = Conform.Translate.to_config(schema, [], conf)
+    sysconfig = Conform.Translate.to_config(schema, config, conf)
     assert is_list(sysconfig)
   end
 
