@@ -1,24 +1,3 @@
-%% -------------------------------------------------------------------%%
-%% conf_parse: for all your .conf parsing needs.
-%%
-%% Copyright (c) 2013 Basho Technologies, Inc.  All Rights Reserved.
-%%
-%% This file is provided to you under the Apache License,
-%% Version 2.0 (the "License"); you may not use this file
-%% except in compliance with the License.  You may obtain
-%% a copy of the License at
-%%
-%%   http://www.apache.org/licenses/LICENSE-2.0
-%%
-%% Unless required by applicable law or agreed to in writing,
-%% software distributed under the License is distributed on an
-%% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-%% KIND, either express or implied.  See the License for the
-%% specific language governing permissions and limitations
-%% under the License.
-%%
-%% -------------------------------------------------------------------
-
 %% A configuration file may have zero-or-more lines.
 config <- line* %{
     [ L || L <- Node, is_setting(L) ]
@@ -121,47 +100,6 @@ ws <- [ \t] `ws`;
 
 % Erlang code
 %{
-
-%% -------------------------------------------------------------------
-%%
-%% conf_parse: for all your .conf parsing needs.
-%%
-%% Copyright (c) 2013 Basho Technologies, Inc.  All Rights Reserved.
-%%
-%% This file is provided to you under the Apache License,
-%% Version 2.0 (the "License"); you may not use this file
-%% except in compliance with the License.  You may obtain
-%% a copy of the License at
-%%
-%%   http://www.apache.org/licenses/LICENSE-2.0
-%%
-%% Unless required by applicable law or agreed to in writing,
-%% software distributed under the License is distributed on an
-%% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-%% KIND, either express or implied.  See the License for the
-%% specific language governing permissions and limitations
-%% under the License.
-%%
-%% -------------------------------------------------------------------
-
-%% @doc This module implements the parser for a sysctl-style
-%% configuration format. Example:
-%%
-%% riak.local.node = riak@127.0.0.1
-%% riak.local.http = 127.0.0.1:8098
-%% riak.local.pb = 127.0.0.1:8087
-%% riak.local.storage.backend = bitcask
-%%
-%% This would parse into the following flat proplist:
-%%
-%% [{<<"riak.local.node">>,<<"riak@127.0.0.1">>},
-%% {<<"riak.local.http">>,<<"127.0.0.1:8098">>},
-%% {<<"riak.local.pb">>,<<"127.0.0.1:8087">>},
-%% {<<"riak.local.storage.backend">>,<<"bitcask">>}]
-%%
-%% Other modules in this application interpret and validate the
-%% result of a successful parse.
-%% @end
 -define(line, true).
 -define(FMT(F,A), lists:flatten(io_lib:format(F,A))).
 
@@ -182,5 +120,4 @@ unescape_double_quotes([$\\,$"|Rest]) ->
 unescape_double_quotes([]) -> [];
 unescape_double_quotes([C|Rest]) ->
     [C|unescape_double_quotes(Rest)].
-
 %}
