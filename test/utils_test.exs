@@ -17,7 +17,7 @@ defmodule ConformUtilsTest do
   end
 
   test "#107" do
-    assert [a: [1,2,3,4,5]] = Conform.Utils.merge([a: [1,2,3,4]], [a: [4,5]])
-    assert [a: ["1","2","3","4","5"]] = Conform.Utils.merge([a: ["1","2","3","4"]], [a: ["4","5"]])
+    assert [a: [4,5]] = Conform.Utils.merge([a: [1,2,3,4]], [a: [4,5]])
+    assert [a: ["4","5"]] = Conform.Utils.merge([a: ["1","2","3","4"]], [a: ["4","5"]])
   end
 end

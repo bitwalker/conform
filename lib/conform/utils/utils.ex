@@ -44,7 +44,7 @@ defmodule Conform.Utils do
       iex> old = [one: [one_sub: [a: 1, b: 2]], two: {1, "foo", :bar}, three: 'just a charlist', four: [1, 2, 3]]
       ...> new = [one: [one_sub: [a: 2, c: 1]], two: {1, "foo", :baz, :qux}, three: 'a new charlist', four: [1, 2, 4, 6]]
       ...> #{__MODULE__}.merge(old, new)
-      [one: [one_sub: [a: 2, b: 2, c: 1]], two: {1, "foo", :baz, :qux}, three: 'a new charlist', four: [1, 2, 3, 4, 6]]
+      [one: [one_sub: [a: 2, b: 2, c: 1]], two: {1, "foo", :baz, :qux}, three: 'a new charlist', four: [1, 2, 4, 6]]
   """
   def merge(old, new) when is_list(old) and is_list(new),
     do: merge(old, new, [])
@@ -80,10 +80,7 @@ defmodule Conform.Utils do
         # Nested lists, we can't safely merge these so use the new one
         new
       :else ->
-        old_set = MapSet.new(old)
-        new_set = MapSet.new(new)
-        MapSet.union(old_set, new_set)
-        |> MapSet.to_list
+        new
     end
   end
 

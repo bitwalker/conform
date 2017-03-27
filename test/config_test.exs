@@ -8,7 +8,9 @@ defmodule ConfigTest do
     schema = Conform.Schema.load!(schema_path)
     conf_path = Path.join(["test", "confs", "readme_example.conf"])
     {:ok, conf} = Conform.Conf.from_file(conf_path)
-    sysconfig = Conform.Translate.to_config(schema, [], conf)
+    config_path = Path.join(["test", "configs", "readme_example.exs"])
+    config = Mix.Config.read!(config_path)
+    sysconfig = Conform.Translate.to_config(schema, config, conf)
     expected = [evl_daemon: [storage_engines: [[type: "memory", maximum_events: "100"]]],
      lager: [
          handlers: [
@@ -21,6 +23,7 @@ defmodule ConfigTest do
          complex_list: [first: [age: 20, username: "username1"],
                         second: [age: 40, username: "username2"]],
          db: [hosts: [{"127.0.0.1", "8000"}, {"127.0.0.2", "8001"}]],
+         nodelist: [:'a@bar', :'b@bar'],
          some_val: :foo
        ]]
     assert expected == sysconfig

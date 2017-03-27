@@ -27,6 +27,12 @@
       default: "/var/log/console.log",
       env_var: "LAGER_INFO_FILE"
     ],
+    "my_app.nodelist": [
+      doc: "A simple list",
+      to: "my_app.nodelist",
+      datatype: [list: :atom],
+      default: [:'a@foo', :'b@foo']
+    ],
     "my_app.db.hosts": [
       doc: "Remote database hosts",
       to: "my_app.db.hosts",
