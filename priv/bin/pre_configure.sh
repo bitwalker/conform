@@ -31,7 +31,7 @@ if [ -f "$CONFORM_SCHEMA_PATH" ]; then
 
         __conform="$REL_DIR/conform"
         # Clobbers input sys.config
-        result="$("$BINDIR/escript" "$__conform" --code-path "$__conform_code_path" --conf "$CONFORM_CONF_PATH" --schema "$CONFORM_SCHEMA_PATH" --config "$SYS_CONFIG_PATH" --output-dir "$(dirname $SYS_CONFIG_PATH)")"
+        "$BINDIR"/escript "$__conform" --code-path "$__conform_code_path" --conf "$CONFORM_CONF_PATH" --schema "$CONFORM_SCHEMA_PATH" --config "$SYS_CONFIG_PATH" --output-dir "$(dirname $SYS_CONFIG_PATH)"
         exit_status="$?"
         if [ "$exit_status" -ne 0 ]; then
             exit "$exit_status"
