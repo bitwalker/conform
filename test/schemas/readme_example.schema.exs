@@ -66,6 +66,11 @@
       datatype: :integer,
       default: 30
     ],
+    "my_app.max_demand": [
+      to: "my_app.max_demand",
+      datatype: :integer,
+      default: nil
+    ],
     "evl_daemon.storage_engines": [
       commented: false,
       datatype: [
@@ -87,6 +92,13 @@
         [{_, :some}] -> {:on, [debug: true]}
         [{_, :none}] -> {:off, []}
         _            -> {:off, []}
+      end
+    end,
+    "my_app.max_demand": fn conf ->
+      res = Conform.Conf.get(conf, "my_app.max_demand")
+      case res do
+        [{_, n}] when is_integer(n) and n > 0 -> n
+        _ -> System.schedulers_online * 5
       end
     end,
     "lager.handlers": fn conf ->
