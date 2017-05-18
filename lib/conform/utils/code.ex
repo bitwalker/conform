@@ -60,9 +60,12 @@ defmodule Conform.Utils.Code do
   end
   # 1 or more key/value pair elements
   defp format_list([{key, value}|rest], acc) do
+    tuples_required? = not Keyword.keyword?(rest)
     case rest do
-      [] -> format_list(rest, format_list_item({key, value}, acc))
-      _  -> format_list(rest, format_list_item({key, value}, acc) <> ",")
+      [] ->
+        format_list(rest, format_list_item({key, value}, acc))
+      _  ->
+        format_list(rest, format_list_item({key, value}, acc, tuples_required?: tuples_required?) <> ",")
     end
   end
   # 1 or more of any other element type
@@ -72,27 +75,39 @@ defmodule Conform.Utils.Code do
       _  -> format_list(t, acc <> "\n" <> tabs(get_indent()) <> "#{inspect(h)}" <> ",")
     end
   end
+
+  defp format_list_item(item, acc, opts \\ [])
+
   # A list item which is a key/value pair with a function as the value
-  defp format_list_item({key, {:fn, _, _} = fndef}, acc) do
+  defp format_list_item({key, {:fn, _, _} = fndef}, acc, _opts) do
     <<?:, keystr::binary>> = "#{inspect key}"
     acc <> "\n" <> tabs(get_indent()) <> keystr <> ": " <> format_function(fndef)
   end
   # Just a tuple
-  defp format_list_item({a, _} = tuple, acc) when not is_atom(a) do
+  defp format_list_item({a, _} = tuple, acc, _opts) when not is_atom(a) do
     acc <> "\n" <> tabs(get_indent()) <> "#{inspect tuple}"
   end
   # A key/value pair list item
-  defp format_list_item({key, value}, acc) do
-    stringified_value      = do_stringify(value)
+  defp format_list_item({key, value}, acc, opts) do
+    tuples_required? = Keyword.get(opts, :tuples_required?, false)
+    stringified_value = do_stringify(value)
     case "#{inspect key}" do
       <<?:, keystr::binary>> ->
-        acc <> "\n" <> tabs(get_indent()) <> keystr <> ": " <> stringified_value
+        if tuples_required? do
+          acc <> "\n" <> tabs(get_indent()) <> "{:" <> keystr <> ", " <> stringified_value <> "}"
+        else
+          acc <> "\n" <> tabs(get_indent()) <> keystr <> ": " <> stringified_value
+        end
       keystr ->
-        acc <> "\n" <> tabs(get_indent()) <> "\"#{keystr}\": " <> stringified_value
+        if tuples_required? do
+          acc <> "\n" <> tabs(get_indent()) <> "{:\"#{keystr}\", " <> stringified_value <> "}"
+        else
+          acc <> "\n" <> tabs(get_indent()) <> "\"#{keystr}\": " <> stringified_value
+        end
     end
   end
   # Any other list item value
-  defp format_list_item(val, acc) do
+  defp format_list_item(val, acc, _opts) do
     acc <> "\n" <> tabs(get_indent()) <> "#{inspect val}"
   end
 

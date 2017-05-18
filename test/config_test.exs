@@ -23,6 +23,7 @@ defmodule ConfigTest do
          complex_list: [first: [age: 20, username: "username1"],
                         second: [age: 40, username: "username2"]],
          db: [hosts: [{"127.0.0.1", "8000"}, {"127.0.0.2", "8001"}]],
+         max_demand: 40,
          nodelist: [:'a@bar', :'b@bar'],
          some_val: :foo
        ]]
