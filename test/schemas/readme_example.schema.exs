@@ -98,7 +98,7 @@
       res = Conform.Conf.get(conf, "my_app.max_demand")
       case res do
         [{_, n}] when is_integer(n) and n > 0 -> n
-        _ -> System.schedulers_online * 5
+        _ -> 40
       end
     end,
     "lager.handlers": fn conf ->

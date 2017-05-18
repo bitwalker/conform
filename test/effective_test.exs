@@ -6,7 +6,7 @@ defmodule ConformEffectiveTest do
     {:ok, conf} = Conform.Conf.from_file(Path.join([__DIR__, "confs", "readme_example.conf"]))
     schema = Conform.Schema.load!(Path.join([__DIR__, "schemas", "readme_example.schema.exs"]))
     effective = Conform.Translate.to_config(schema, config, conf)
-    expected = System.schedulers_online * 5
+    expected = 40
     assert ^expected = get_in(effective, [:my_app, :max_demand])
   end
 
