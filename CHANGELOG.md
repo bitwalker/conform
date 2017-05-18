@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file (at least to the extent possible, I am not infallible sadly).
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## 2.3.3
+
+### Fixed
+
+- #122 - generated config with keyword-like lists is syntactically invalid
+- #96 - Print warning instead of failing when generating .conf with unknown types
+
 ## 2.2.2
 
 ### Fixed
