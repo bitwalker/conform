@@ -469,11 +469,16 @@ defmodule Conform.Translate do
     converted = write_datatype(type, v, setting)
     <<Atom.to_string(k)::binary, " = ", converted::binary>>
   end
-  defp write_datatype(_datatype, value, _setting) do
+  defp write_datatype(datatype, value, setting) do
     case "#{value}" do
       "" -> <<?", "#{value}", ?">>
       _ -> "#{value}"
     end
+  rescue
+    Protocol.UndefinedError ->
+      msg = "Unable to stringify #{setting}, unrecognized type #{inspect datatype}"
+      IO.puts(IO.ANSI.yellow <> msg <> IO.ANSI.reset)
+      ""
   end
 
   defp to_comment(str) do
