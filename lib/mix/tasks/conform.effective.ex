@@ -108,24 +108,39 @@ defmodule Mix.Tasks.Conform.Effective do
     # the config, or the .conf, the default from the schema is used.
     effective = Conform.Translate.to_config(schema, config, conf)
     # Print the configuration as requested
-    output = case args.options.type do
-      :schema -> Conform.Schema.stringify(schema)
-      :all    -> Conform.SysConfig.prettify(effective)
-      :app    ->
+    output_type = args.options.output
+    case args.options.type do
+      :schema when output_type == :stdout ->
+        schema |> Conform.Schema.stringify |> IO.puts
+      :schema when is_binary(output_type) ->
+        output = schema |> Conform.Schema.stringify
+        File.write!(output_type, output)
+      :all when output_type == :stdout ->
+        Conform.SysConfig.print(effective)
+      :all when is_binary(output_type) ->
+        output = Conform.SysConfig.prettify(effective)
+        File.write!(output_type, output)
+      :app ->
         case Keyword.get(effective, args.options.app) do
           nil ->
-            notice "App not found!"
-            ""
-          app_config ->
-            Conform.SysConfig.prettify(app_config)
+            Conform.Logger.warn "App not found!"
+            if is_binary(output_type) do
+              File.touch(output_type)
+            end
+          app_config when output_type == :stdout ->
+            Conform.SysConfig.print(app_config)
+          app_config when is_binary(output_type) ->
+            output = Conform.SysConfig.prettify(app_config)
+            File.write!(output_type, output)
         end
-      :key ->
-        effective |> extract_key(args.options.key) |> Conform.SysConfig.prettify
-    end
-
-    case args.options.output do
-      :stdout -> IO.puts(output)
-      path    -> File.write!(path, output)
+      :key when output_type == :stdout ->
+        config = effective |> extract_key(args.options.key)
+        Conform.SysConfig.print(config)
+      :key when is_binary(output_type) ->
+        config = effective |> extract_key(args.options.key) |> Conform.SysConfig.prettify
+        File.write!(output_type, config)
+      _ ->
+        Conform.Logger.error "Invalid output: #{inspect output_type}"
     end
   end
 

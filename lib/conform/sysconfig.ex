@@ -24,19 +24,20 @@ defmodule Conform.SysConfig do
   end
 
   @doc """
-  Print a config to the console with pretty formatting
-  """
-  def pprint(config) do
-    config
-    |> prettify
-    |> IO.puts
-  end
-
-  @doc """
   Print a config to the console without applying any formatting
   """
   def print(config) do
-    IO.inspect(config)
+    if IO.ANSI.enabled? do
+      colors = [
+        number: :yellow,
+        atom: :cyan,
+        regex: :yellow,
+        string: :green
+      ]
+      IO.inspect(config, width: 0, limit: :infinity, pretty: true, syntax_colors: colors)
+    else
+      IO.inspect(config, width: 0, limit: :infinity, pretty: true)
+    end
   end
 
   @doc """
@@ -55,5 +56,4 @@ defmodule Conform.SysConfig do
     |> Inspect.Algebra.to_doc(%Inspect.Opts{pretty: true, limit: 1000})
     |> Inspect.Algebra.format(80)
   end
-
 end
