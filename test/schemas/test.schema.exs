@@ -1,6 +1,6 @@
 [
-  extends: [:foo],
-  import: [:foo],
+  extends: [],
+  import: [],
   mappings: [
     "log.error.file": [
       to:       "log.error_file",

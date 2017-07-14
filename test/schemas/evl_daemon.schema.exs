@@ -1,7 +1,6 @@
 [
   extends: [],
   import: [
-    :poison
   ],
   mappings: [
     "evl_daemon.mailer_api_key": [
