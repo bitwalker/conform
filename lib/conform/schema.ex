@@ -241,13 +241,12 @@ defmodule Conform.Schema do
   @spec coalesce() :: schema
   def coalesce do
     # Get schemas from all dependencies
-    proj_config = [build_path: Mix.Project.build_path, umbrella?: Mix.Project.umbrella?]
     # Merge schemas for all deps
     Mix.Dep.loaded([])
     |> Enum.map(fn %Mix.Dep{app: app, opts: opts} ->
-         Mix.Project.in_project(app, opts[:dest], proj_config, fn _ -> load!(app) end)
+         Mix.Project.in_project(app, opts[:dest], opts, fn _ -> load!(app) end)
        end)
-    |> coalesce
+    |> coalesce()
   end
 
   @doc """

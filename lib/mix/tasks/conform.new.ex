@@ -9,16 +9,14 @@ defmodule Mix.Tasks.Conform.New do
   """
   @shortdoc "Create a new .schema.exs file for configuring your app with conform"
 
-  use    Mix.Task
-  import Conform.Utils
+  use Mix.Task
 
   def run(_args) do
     Mix.Tasks.Loadpaths.run([])
     if Mix.Project.umbrella? do
-      config = [build_path: Mix.Project.build_path]
       # Execute task for each project in the umbrella
       for %Mix.Dep{app: app, opts: opts} <- Mix.Dep.Umbrella.loaded do
-        Mix.Project.in_project(app, opts[:path], config, fn _ ->
+        Mix.Project.in_project(app, opts[:path], opts, fn _ ->
           do_run(app, Path.expand("config/config.exs"))
         end)
       end

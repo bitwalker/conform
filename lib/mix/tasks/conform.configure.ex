@@ -4,15 +4,13 @@ defmodule Mix.Tasks.Conform.Configure do
   """
   @shortdoc "Create a .conf file from schema and project config"
 
-  use    Mix.Task
-  import Conform.Utils
+  use Mix.Task
 
   def run(args) do
     Mix.Tasks.Loadpaths.run([])
     if Mix.Project.umbrella? do
-      config = [build_path: Mix.Project.build_path]
       for %Mix.Dep{app: app, opts: opts} <- Mix.Dep.Umbrella.loaded do
-        Mix.Project.in_project(app, opts[:path], config, &do_run/1)
+        Mix.Project.in_project(app, opts[:path], opts, &do_run/1)
       end
     else
       do_run(args)
