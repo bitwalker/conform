@@ -45,11 +45,11 @@ defmodule Mix.Tasks.Conform.New do
         schema = Conform.Schema.from_config(config)
         # Write the generated schema to `output_path`
         Conform.Schema.write_quoted(schema, output_path)
-        info "The schema for your project has been placed in #{Path.relative_to_cwd(output_path)}"
+        Conform.Logger.success "The schema for your project has been placed in #{Path.relative_to_cwd(output_path)}"
       else
-        warn "Your project does not currently have any configuration!"
+        Conform.Logger.warn "Your project does not currently have any configuration!"
         Conform.Schema.write_quoted(Conform.Schema.empty, output_path)
-        info "An empty schema has been placed in #{Path.relative_to_cwd(output_path)}"
+        Conform.Logger.success "An empty schema has been placed in #{Path.relative_to_cwd(output_path)}"
       end
     end
   end
@@ -63,5 +63,4 @@ defmodule Mix.Tasks.Conform.New do
     IO.puts IO.ANSI.reset
     confirmed?
   end
-
 end

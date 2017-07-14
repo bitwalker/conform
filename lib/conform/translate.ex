@@ -116,8 +116,7 @@ defmodule Conform.Translate do
       :ets.tab2list(conf_table_id) |> Conform.Utils.results_to_tree
     catch
       err ->
-        Conform.Utils.error("Error thrown when constructing configuration: #{Macro.to_string(err)}")
-        exit(1)
+        Conform.Logger.error("Error thrown when constructing configuration: #{Macro.to_string(err)}")
     end
   end
 
@@ -284,8 +283,7 @@ defmodule Conform.Translate do
         t.(table)
       _ ->
         problem_key = Enum.map(key, &List.to_string/1) |> Enum.join(".")
-        Conform.Utils.error("Invalid transform for #{problem_key}. Must be a function of arity 1")
-        exit(1)
+        Conform.Logger.error("Invalid transform for #{problem_key}. Must be a function of arity 1")
     end
     :ets.insert(table, {key, transformed})
     apply_transforms(rest, table)

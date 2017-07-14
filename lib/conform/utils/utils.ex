@@ -1,40 +1,6 @@
 defmodule Conform.Utils do
   @moduledoc false
 
-  import IO.ANSI, only: [green: 0, yellow: 0, red: 0]
-
-  @doc "Print an debugging message"
-  def debug(message), do: log("==> #{message}")
-  @doc "Print an informational message"
-  def info(message),  do: log("==> #{message}", green())
-  @doc "Print a warning message"
-  def warn(message),  do: log("==> #{message}", yellow())
-  @doc "Print a notice message"
-  def notice(message), do: log("#{message}", yellow())
-  @doc "Print an error message"
-  def error(message), do: log("==> #{message}", red())
-
-  # Prints a message to standard output, optionally colorized.
-  case Mix.env do
-    :test ->
-      defp log(message, color \\ nil) do
-        case color do
-          nil -> message
-          _   -> colorize(message, color)
-        end
-      end
-    _ ->
-      defp log(message, color \\ nil) do
-        case color do
-          nil -> IO.puts message
-          _   -> IO.puts colorize(message, color)
-        end
-      end
-  end
-  # Colorizes a message using ANSI escapes
-  defp colorize(message, color), do: color <> message <> IO.ANSI.reset
-
-
   @doc """
   Recursively merges two keyword lists. Values themselves are also merged (depending on type),
   such that the resulting keyword list is a true merge of the second keyword list over the first.

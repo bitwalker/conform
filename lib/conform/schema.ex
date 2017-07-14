@@ -164,7 +164,7 @@ defmodule Conform.Schema do
           case valid_import?(i) do
             true  -> i
             false ->
-              Conform.Utils.warn "Schema imports #{i}, but #{i} could not be loaded."
+              Conform.Logger.warn "Schema imports #{i}, but #{i} could not be loaded."
               nil
           end
         end) |> Enum.filter(fn nil -> false; _ -> true end)
@@ -204,13 +204,13 @@ defmodule Conform.Schema do
           e when is_atom(e) ->
             case get_extends_schema(e, path) do
               nil ->
-                Conform.Utils.warn "Schema extends #{e}, but the schema for #{e} was not found."
+                Conform.Logger.warn "Schema extends #{e}, but the schema for #{e} was not found."
                 nil
               {schema_path, contents} ->
                 contents |> parse! |> from(schema_path)
             end
           e ->
-            Conform.Utils.warn "Invalid extends value: #{e}. Only application names as atoms are permitted."
+            Conform.Logger.warn "Invalid extends value: #{e}. Only application names as atoms are permitted."
             nil
         end) |> Enum.filter(fn nil -> false; _ -> true end)
         # Merge them onto the base schema in the order provided

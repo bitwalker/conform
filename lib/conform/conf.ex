@@ -34,7 +34,8 @@ defmodule Conform.Conf do
     end
   end
 
-  defp from(conf) do
+  @doc false
+  def from(conf) do
     table = :ets.new(:conform_query, [:set, keypos: 1])
     for {key, value} <- conf do
       # In order to make sure that module names in key paths are not split,

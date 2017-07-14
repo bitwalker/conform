@@ -25,16 +25,16 @@ defmodule Mix.Tasks.Conform.Configure do
     output_path = Path.join([File.cwd!, "config", "#{app}.#{Mix.env}.conf"])
 
     # Check for conditions which prevent us from continuing
-    continue? = case File.exists?(schema_path) do
-      true  -> true
-      false ->
-        error "You must create a schema before you can generate a .conf!"
-        false
-    end
-    continue? = continue? and case File.exists?(output_path) do
-      true  -> confirm_overwrite?(output_path)
-      false -> true
-    end
+    continue? =
+      if File.exists?(schema_path) do
+        if File.exists?(output_path) do
+          confirm_overwrite?(output_path)
+        else
+          true
+        end
+      else
+        Conform.Logger.error "You must create a schema before you can generate a .conf!"
+      end
 
     if continue? do
       # Convert configuration to schema format
@@ -43,7 +43,7 @@ defmodule Mix.Tasks.Conform.Configure do
       conf = Conform.Translate.to_conf(schema)
       # Output configuration to `output_path`
       File.write!(output_path, conf)
-      info "The .conf file for #{app} has been placed in #{Path.relative_to_cwd(output_path)}"
+      Conform.Logger.success "The .conf file for #{app} has been placed in #{Path.relative_to_cwd(output_path)}"
     end
   end
 

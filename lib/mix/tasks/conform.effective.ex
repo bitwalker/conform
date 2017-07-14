@@ -29,8 +29,7 @@ defmodule Mix.Tasks.Conform.Effective do
   """
   @shortdoc "Print the effective configuration for the current project"
 
-  use    Mix.Task
-  import Conform.Utils
+  use Mix.Task
 
   # Perform some actions within the context of a specific mix environment
   defp with_env(env, fun) do
@@ -49,16 +48,18 @@ defmodule Mix.Tasks.Conform.Effective do
     args = parse_args(argv)
     cond do
       Mix.Project.umbrella? && args.options.type == :app ->
-        config = [build_path: Mix.Project.build_path]
         app = args.options.app
-        for %Mix.Dep{app: ^app, opts: opts} <- Mix.Dep.Umbrella.loaded do
-          Mix.Project.in_project(app, opts[:path], config, fn _ -> do_run(args) end)
+        dep = Enum.find(Mix.Dep.Umbrella.loaded, fn %Mix.Dep{app: ^app} -> true; _ -> false end)
+        case dep do
+          %Mix.Dep{opts: opts} ->
+            Mix.Project.in_project(app, opts[:path], opts, fn _ -> do_run(args) end)
+          _ ->
+            Conform.Logger.error "#{app} could not be found"
         end
       Mix.Project.umbrella? ->
-        config = [build_path: Mix.Project.build_path]
         for %Mix.Dep{app: app, opts: opts} <- Mix.Dep.Umbrella.loaded do
-          IO.puts "in #{app}.."
-          Mix.Project.in_project(app, opts[:path], config, fn _ -> do_run(args) end)
+          Conform.Logger.info "in #{app}"
+          Mix.Project.in_project(app, opts[:path], opts, fn _ -> do_run(args) end)
         end
       :else ->
         do_run(args)
@@ -85,19 +86,21 @@ defmodule Mix.Tasks.Conform.Effective do
       false -> []
     end
     # Read .conf
-    conf = case File.exists?(conf_path) do
-      false ->
-        error "You must have a .conf file in order to run conform.effective!"
-        exit(:normal)
-      true  ->
+    conf =
+      if File.exists?(conf_path) do
         case Conform.Conf.from_file(conf_path) do
+          {:error, reason} when is_binary(reason) ->
+            Conform.Logger.error "Failed to parse .conf!\nError: #{reason}"
           {:error, reason} ->
-            error reason
-            exit(:normal)
+            Conform.Logger.error "Failed to parse .conf!\nError: #{inspect reason}"
           {:ok, table} ->
             table
         end
-    end
+      else
+        Conform.Logger.debug "No .conf file found - defaults from schema and Mix config will be used"
+          {:ok, table} = Conform.Conf.from([])
+          table
+      end
     # Load merged schemas
     schema = Conform.Schema.schema_path(app) |> Conform.Schema.load!
     # Translate .conf -> config, using settings from config if one is
@@ -134,8 +137,7 @@ defmodule Mix.Tasks.Conform.Effective do
       config |> get_in(spec)
     rescue
       Protocol.UndefinedError ->
-        notice "The value for some key in #{path} doesn't implement the Access protocol!"
-        exit(:normal)
+        Conform.Logger.error "The value for some key in #{path} doesn't implement the Access protocol!"
     end
   end
 
@@ -149,8 +151,7 @@ defmodule Mix.Tasks.Conform.Effective do
 
     mutually_exclusive_opts = Enum.filter([app: app, key: key, schema: schema], fn({_, val}) -> val != nil end)
     if Enum.count(mutually_exclusive_opts) > 1 do
-      error "the options #{mutually_exclusive_opts} are mutually exclusive"
-      exit(:normal)
+      Conform.Logger.error "the options #{mutually_exclusive_opts} are mutually exclusive"
     end
 
     # populate options

@@ -2,6 +2,7 @@ defmodule Conform do
   @moduledoc """
   Entry point for Conform escript
   """
+  alias Conform.Logger
 
   defmodule Options do
     defstruct conf: "", schema: "", write_to: "", config: ""
@@ -57,7 +58,7 @@ defmodule Conform do
       --code-path <path>:   Adds the given path to the current code path, accepts wildcards.
       -h | --help:          Prints this help
     """
-    System.halt(0)
+    exit({:shutdown, 0})
   end
 
   # Convert switches to fully validated Options struct
@@ -65,8 +66,8 @@ defmodule Conform do
     conf   = Keyword.get(switches, :conf, nil)
     schema = Keyword.get(switches, :schema, nil)
     case {conf, schema} do
-      {nil, _} -> error("--conf is required"); process(:help)
-      {_, nil} -> error("--schema is required"); process(:help)
+      {nil, _} -> Logger.warn("--conf is required"); process(:help)
+      {_, nil} -> Logger.warn("--schema is required"); process(:help)
       {^conf, ^schema} ->
         # Read in other options or their defaults
         filename = Keyword.get(switches, :filename, "sys.config")
@@ -86,9 +87,10 @@ defmodule Conform do
   defp process(%Options{} = options) do
     # Read .conf and .schema.exs
     final = case Conform.Conf.from_file(options.conf) do
+      {:error, reason} when is_binary(reason) ->
+        Logger.error "Failed to read .conf!\n#{reason}"
       {:error, reason} ->
-        error reason
-        exit(:fatal)
+        Logger.error "Failed to read .conf!\nError: #{inspect reason}"
       {:ok, conf} ->
         schema = Conform.Schema.load!(options.schema)
         # Read .config if exists
@@ -101,11 +103,10 @@ defmodule Conform do
               {:ok, [config]} ->
                 Conform.Translate.to_config(schema, config, conf)
               {:error, _} ->
-                error """
+                Logger.error """
                 Unable to parse config at #{path}
                 Check that the file exists and is in the correct format.
                 """
-                exit(:fatal)
             end
         end
     end
@@ -114,20 +115,10 @@ defmodule Conform do
       :ok ->
         :ok
       {:error, reason} ->
-        error """
-        Unable to write configuration file #{options.write_to} with reason: #{reason}
-        """
-        exit(:fatal)
+        Logger.error "Unable to write configuration file #{options.write_to} with reason: #{reason}"
     end
     # Print success message
-    success "Generated #{options.write_to |> Path.basename} in #{options.write_to |> Path.dirname}"
-  end
-
-  defp error(message) do
-    IO.ANSI.red <> message <> IO.ANSI.reset |> IO.puts
-  end
-  defp success(message) do
-    IO.ANSI.green <> message <> IO.ANSI.reset |> IO.puts
+    Logger.success "Generated #{options.write_to |> Path.basename} in #{options.write_to |> Path.dirname}"
   end
 
 end
