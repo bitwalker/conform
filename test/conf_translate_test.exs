@@ -91,6 +91,27 @@ defmodule ConfTranslateTest do
     end)
   end
 
+  test "can handle utf8 values when translating" do
+    cwd = File.cwd!
+    script = Path.join([cwd, "priv", "bin", "conform"])
+    sys_config = Mix.Config.read!(Path.join([cwd, "test", "configs", "utf8.exs"]))
+    utf8_dir = Path.join([cwd, "test", "fixtures", "utf8"])
+    File.mkdir_p!(utf8_dir)
+    sys_config_path = Path.join([utf8_dir, "utf8_sys.config"])
+    :ok = Conform.SysConfig.write(sys_config_path, sys_config)
+    conf_path = Path.join([cwd, "test", "confs", "utf8.conf"])
+    schema_path = Path.join([cwd, "test", "schemas", "utf8.schema.exs"])
+
+    #capture_io(fn ->
+      expected = [my_app: [utf8: "Fixé"]]
+
+      {_output, 0} = System.cmd(script, ["--schema", schema_path, "--conf", conf_path, "--output-dir", utf8_dir])
+      {:ok, [sysconfig]} = :file.consult(Path.join([utf8_dir, "sys.config"]))
+      assert ^expected = sysconfig
+      File.rm_rf!(utf8_dir)
+    #end)
+  end
+
   test "can generate config as Elixir terms from .conf and schema" do
     path   = Path.join(["test", "schemas", "test.schema.exs"])
     schema = path |> Conform.Schema.load!

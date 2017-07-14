@@ -17,7 +17,8 @@ defmodule Conform.SysConfig do
   """
   @spec write(binary, term) :: :ok | {:error, term}
   def write(path, config) do
-    case File.write!(path, :io_lib.fwrite('~p.\n', [config])) do
+    bin = :io_lib.fwrite('~tp.~n', [config])
+    case :file.write_file(String.to_charlist(path), bin, [encoding: :utf8]) do
       :ok -> :ok
       {:error, reason} -> {:error, :file.format_error(reason)}
     end

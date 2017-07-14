@@ -23,17 +23,21 @@ is_setting(comment) -> false;
 is_setting(_) -> true.
 
 %% @doc Removes escaped dots from keys
-unescape_dots([$\\,$.|Rest]) ->
-    [$.|unescape_dots(Rest)];
-unescape_dots([]) -> [];
-unescape_dots([C|Rest]) ->
-    [C|unescape_dots(Rest)].
+unescape_dots(<<$\\, $., Rest/binary>>) ->
+    Unescaped = unescape_dots(Rest),
+    <<$., Unescaped/binary>>;
+unescape_dots(<<>>) -> <<>>;
+unescape_dots(<<C/utf8, Rest/binary>>) ->
+    Unescaped = unescape_dots(Rest),
+    <<C/utf8, Unescaped/binary>>.
 
-unescape_double_quotes([$\\,$"|Rest]) ->
-    [$"|unescape_double_quotes(Rest)];
-unescape_double_quotes([]) -> [];
-unescape_double_quotes([C|Rest]) ->
-    [C|unescape_double_quotes(Rest)].
+unescape_double_quotes(<<$\\, $", Rest/binary>>) ->
+    Unescaped = unescape_double_quotes(Rest),
+    <<$", Unescaped/binary>>;
+unescape_double_quotes(<<>>) -> <<>>;
+unescape_double_quotes(<<C/utf8, Rest/binary>>) ->
+    Unescaped = unescape_double_quotes(Rest),
+    <<C/utf8, Unescaped/binary>>.
 
 -spec file(file:name()) -> any().
 file(Filename) -> case file:read_file(Filename) of {ok,Bin} -> parse(Bin); Err -> Err end.
@@ -72,9 +76,9 @@ parse(Input) when is_binary(Input) ->
 
 -spec 'key'(input(), index()) -> parse_result().
 'key'(Input, Index) ->
-  p(Input, Index, 'key', fun(I,D) -> (p_seq([p_label('head', p_choose([fun 'word'/2, fun 'double_quote_value'/2])), p_label('tail', p_zero_or_more(p_seq([p_string(<<".">>), p_choose([fun 'word'/2, fun 'double_quote_value'/2])])))]))(I,D) end, fun(Node, _Idx) ->
+  p(Input, Index, 'key', fun(I,D) -> (p_seq([p_label('head', p_choose([fun 'keyword'/2, fun 'double_quote_value'/2])), p_label('tail', p_zero_or_more(p_seq([p_string(<<".">>), p_choose([fun 'keyword'/2, fun 'double_quote_value'/2])])))]))(I,D) end, fun(Node, _Idx) ->
     [{head, H}, {tail, T}] = Node,
-    [unicode:characters_to_list(H)| [ unicode:characters_to_list(W) || [_, W] <- T]]
+    [unicode:characters_to_list(H) | [unicode:characters_to_list(W) || [_, W] <- T]]
  end).
 
 -spec 'list_value'(input(), index()) -> parse_result().
@@ -86,14 +90,11 @@ parse(Input) when is_binary(Input) ->
 
 -spec 'double_quote_value'(input(), index()) -> parse_result().
 'double_quote_value'(Input, Index) ->
-  p(Input, Index, 'double_quote_value', fun(I,D) -> (p_seq([p_not(p_choose([p_seq([p_zero_or_more(fun 'ws'/2), fun 'crlf'/2]), fun 'comment'/2])), p_string(<<"\"">>), p_zero_or_more(p_choose([p_string(<<"\\\"">>), p_seq([p_not(p_string(<<"\"">>)), p_anything()])])), p_string(<<"\"">>)]))(I,D) end, fun(Node, Idx) ->
+  p(Input, Index, 'double_quote_value', fun(I,D) -> (p_seq([p_not(p_choose([p_seq([p_zero_or_more(fun 'ws'/2), fun 'crlf'/2]), fun 'comment'/2])), p_string(<<"\"">>), p_zero_or_more(p_choose([p_string(<<"\\\"">>), p_seq([p_not(p_string(<<"\"">>)), p_anything()])])), p_string(<<"\"">>)]))(I,D) end, fun(Node, _Idx) ->
     [_, _OpenQuote, Chars, _CloseQuote] = Node,
-    case unicode:characters_to_list(Chars) of
-      {_Status, _Begining, _Rest} ->
-          {error, ?FMT("Error converting value on line #~p to utf8", [line(Idx)])};
-      String ->
-        unescape_double_quotes(String)
-    end
+    Bin = iolist_to_binary(Chars),
+    Unescaped = unescape_double_quotes(Bin),
+    binary_to_list(Unescaped)
  end).
 
 -spec 'kv_value'(input(), index()) -> parse_result().
@@ -105,45 +106,34 @@ parse(Input) when is_binary(Input) ->
 
 -spec 'kv_key'(input(), index()) -> parse_result().
 'kv_key'(Input, Index) ->
-  p(Input, Index, 'kv_key', fun(I,D) -> (p_one_or_more(p_seq([p_not(p_choose([fun 'ws'/2, fun 'crlf'/2, p_string(<<"=">>)])), p_anything()])))(I,D) end, fun(Node, Idx) ->
-    case unicode:characters_to_binary(Node, utf8, utf8) of
-      {_Status, _Beginning, _Rest} ->
-          {error, ?FMT("Error converting k/v key on line #~p to utf8", [line(Idx)])};
-      Bin ->
-          binary_to_list(Bin)
-    end
+  p(Input, Index, 'kv_key', fun(I,D) -> (p_one_or_more(p_seq([p_not(p_choose([fun 'ws'/2, fun 'crlf'/2, p_string(<<"=">>)])), p_anything()])))(I,D) end, fun(Node, _Idx) ->
+    Bin = iolist_to_binary(Node),
+    binary_to_list(Bin)
  end).
 
 -spec 'value'(input(), index()) -> parse_result().
 'value'(Input, Index) ->
-  p(Input, Index, 'value', fun(I,D) -> (p_one_or_more(p_seq([p_not(p_choose([p_seq([p_zero_or_more(fun 'ws'/2), fun 'crlf'/2]), fun 'comment'/2])), p_choose([p_string(<<"\\\\">>), p_string(<<"\\,">>), p_seq([p_not(p_string(<<",">>)), p_anything()])])])))(I,D) end, fun(Node, Idx) ->
-    case unicode:characters_to_binary(Node, utf8, utf8) of
-        {_Status, _Begining, _Rest} ->
-            {error, ?FMT("Error converting value on line #~p to utf8", [line(Idx)])};
-        Bin ->
-            binary_to_list(Bin)
-    end
+  p(Input, Index, 'value', fun(I,D) -> (p_one_or_more(p_seq([p_not(p_choose([p_seq([p_zero_or_more(fun 'ws'/2), fun 'crlf'/2]), fun 'comment'/2])), p_choose([p_string(<<"\\\\">>), p_string(<<"\\,">>), p_seq([p_not(p_string(<<",">>)), p_anything()])])])))(I,D) end, fun(Node, _Idx) ->
+    Bin = iolist_to_binary(Node),
+    binary_to_list(Bin)
  end).
 
 -spec 'value_in_list'(input(), index()) -> parse_result().
 'value_in_list'(Input, Index) ->
-  p(Input, Index, 'value_in_list', fun(I,D) -> (p_one_or_more(p_seq([p_not(p_choose([fun 'ws'/2, fun 'crlf'/2, p_string(<<",">>), p_string(<<"]">>)])), p_anything()])))(I,D) end, fun(Node, Idx) ->
-    case unicode:characters_to_binary(Node) of
-        {_Status, _Beginning, _Rest} ->
-            {error, ?FMT("Error converting value on line #~p to utf8", [line(Idx)])};
-        Bin ->
-            binary_to_list(Bin)
-    end
+  p(Input, Index, 'value_in_list', fun(I,D) -> (p_one_or_more(p_seq([p_not(p_choose([fun 'ws'/2, fun 'crlf'/2, p_string(<<",">>), p_string(<<"]">>)])), p_anything()])))(I,D) end, fun(Node, _Idx) ->
+    Bin = iolist_to_binary(Node),
+    binary_to_list(Bin)
  end).
 
 -spec 'comment'(input(), index()) -> parse_result().
 'comment'(Input, Index) ->
   p(Input, Index, 'comment', fun(I,D) -> (p_seq([p_zero_or_more(fun 'ws'/2), p_string(<<"#">>), p_zero_or_more(p_seq([p_not(fun 'crlf'/2), p_anything()]))]))(I,D) end, fun(_Node, _Idx) ->comment end).
 
--spec 'word'(input(), index()) -> parse_result().
-'word'(Input, Index) ->
-  p(Input, Index, 'word', fun(I,D) -> (p_one_or_more(p_choose([p_string(<<"\\.">>), p_charclass(<<"[A-Za-z0-9_-]">>)])))(I,D) end, fun(Node, _Idx) ->
-    unescape_dots(unicode:characters_to_list(Node))
+-spec 'keyword'(input(), index()) -> parse_result().
+'keyword'(Input, Index) ->
+  p(Input, Index, 'keyword', fun(I,D) -> (p_one_or_more(p_choose([p_string(<<"\\.">>), p_charclass(<<"[A-Za-z0-9_-]">>)])))(I,D) end, fun(Node, _Idx) ->
+    Unescaped = unescape_dots(iolist_to_binary(Node)),
+    binary_to_list(Unescaped)
  end).
 
 -spec 'crlf'(input(), index()) -> parse_result().

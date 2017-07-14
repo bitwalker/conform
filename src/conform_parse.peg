@@ -20,9 +20,9 @@ setting <- ws* key ws* "=" ws* ((list_value / double_quote_value / kv_value / va
 %};
 
 %% A key is a series of dot-separated identifiers.
-key <- head:(word / double_quote_value) tail:("." (word / double_quote_value))* %{
+key <- head:(keyword / double_quote_value) tail:("." (keyword / double_quote_value))* %{
     [{head, H}, {tail, T}] = Node,
-    [unicode:characters_to_list(H)| [ unicode:characters_to_list(W) || [_, W] <- T]]
+    [unicode:characters_to_list(H) | [unicode:characters_to_list(W) || [_, W] <- T]]
 %};
 
 %% A list of values surrounded by brackets, keys are always atoms
@@ -34,12 +34,9 @@ list_value <- (!((ws* crlf) / comment) "[" (((kv_value / (double_quote_value / v
 %% A value surrounded by double quotes
 double_quote_value <- (!((ws* crlf) / comment) '"' ('\\"' / (!'"' .))* '"') %{
     [_, _OpenQuote, Chars, _CloseQuote] = Node,
-    case unicode:characters_to_list(Chars) of
-      {_Status, _Begining, _Rest} ->
-          {error, ?FMT("Error converting value on line #~p to utf8", [line(Idx)])};
-      String ->
-        unescape_double_quotes(String)
-    end
+    Bin = iolist_to_binary(Chars),
+    Unescaped = unescape_double_quotes(Bin),
+    binary_to_list(Unescaped)
 %};
 
 % A key/value pair
@@ -50,42 +47,31 @@ kv_value <- (!((ws* crlf) / comment) (kv_key ws* "=" ws* ((double_quote_value / 
 
 % A key for a kv_pair
 kv_key <- (!(ws / crlf / "=") .)+ %{
-    case unicode:characters_to_binary(Node, utf8, utf8) of
-      {_Status, _Beginning, _Rest} ->
-          {error, ?FMT("Error converting k/v key on line #~p to utf8", [line(Idx)])};
-      Bin ->
-          binary_to_list(Bin)
-    end
+    Bin = iolist_to_binary(Node),
+    binary_to_list(Bin)
 %};
 
 %% A value is any character, with trailing whitespace stripped.
 value <- (!((ws* crlf) / comment) ("\\\\" / '\\,' / (!',' .)))+ %{
-    case unicode:characters_to_binary(Node, utf8, utf8) of
-        {_Status, _Begining, _Rest} ->
-            {error, ?FMT("Error converting value on line #~p to utf8", [line(Idx)])};
-        Bin ->
-            binary_to_list(Bin)
-    end
+    Bin = iolist_to_binary(Node),
+    binary_to_list(Bin)
 %};
 
 %% A value is any character, except those which continue/close a list, with trailing whitespace stripped
 value_in_list <- (!(ws / crlf / "," / "]") .)+ %{
-    case unicode:characters_to_binary(Node) of
-        {_Status, _Beginning, _Rest} ->
-            {error, ?FMT("Error converting value on line #~p to utf8", [line(Idx)])};
-        Bin ->
-            binary_to_list(Bin)
-    end
+    Bin = iolist_to_binary(Node),
+    binary_to_list(Bin)
 %};
 
 %% A comment is any line that begins with a # sign, leading whitespace
 %% allowed.
 comment <- ws* "#" (!crlf .)* `comment`;
 
-%% A word is one or more of letters, numbers and dashes or
+%% A keyword is one or more of letters, numbers and dashes or
 %% underscores.
-word <- ("\\." / [A-Za-z0-9_-])+ %{
-    unescape_dots(unicode:characters_to_list(Node))
+keyword <- ("\\." / [A-Za-z0-9_-])+ %{
+    Unescaped = unescape_dots(iolist_to_binary(Node)),
+    binary_to_list(Unescaped)
 %};
 
 %% An end-of-line is signified by a line-feed with an optional
@@ -109,15 +95,19 @@ is_setting(comment) -> false;
 is_setting(_) -> true.
 
 %% @doc Removes escaped dots from keys
-unescape_dots([$\\,$.|Rest]) ->
-    [$.|unescape_dots(Rest)];
-unescape_dots([]) -> [];
-unescape_dots([C|Rest]) ->
-    [C|unescape_dots(Rest)].
+unescape_dots(<<$\\, $., Rest/binary>>) ->
+    Unescaped = unescape_dots(Rest),
+    <<$., Unescaped/binary>>;
+unescape_dots(<<>>) -> <<>>;
+unescape_dots(<<C/utf8, Rest/binary>>) ->
+    Unescaped = unescape_dots(Rest),
+    <<C/utf8, Unescaped/binary>>.
 
-unescape_double_quotes([$\\,$"|Rest]) ->
-    [$"|unescape_double_quotes(Rest)];
-unescape_double_quotes([]) -> [];
-unescape_double_quotes([C|Rest]) ->
-    [C|unescape_double_quotes(Rest)].
+unescape_double_quotes(<<$\\, $", Rest/binary>>) ->
+    Unescaped = unescape_double_quotes(Rest),
+    <<$", Unescaped/binary>>;
+unescape_double_quotes(<<>>) -> <<>>;
+unescape_double_quotes(<<C/utf8, Rest/binary>>) ->
+    Unescaped = unescape_double_quotes(Rest),
+    <<C/utf8, Unescaped/binary>>.
 %}

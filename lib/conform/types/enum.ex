@@ -23,7 +23,8 @@ defmodule Conform.Types.Enum do
   def convert(value, %Mapping{default: default, datatype: [{_, valid_values}]}) do
     parsed = case value do
       nil -> default
-      _   -> List.to_atom(value)
+      val when is_list(val) -> List.to_atom(val)
+      val when is_binary(val) -> String.to_atom(val)
     end
     case parsed in valid_values do
       true  -> {:ok, parsed}
