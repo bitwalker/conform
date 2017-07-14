@@ -9,9 +9,9 @@ defmodule Conform.Mixfile do
 
   def project do
     [app: :conform,
-     version: "2.3.7",
+     version: "2.3.8",
      elixir: "~> 1.3",
-     escript: [main_module: Conform],
+     escript: [main_module: Conform, path: "priv/bin/conform"],
      compilers: compilers(@do_peg_compile?),
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
