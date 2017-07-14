@@ -27,6 +27,7 @@ defmodule Conform.SysConfig do
   Print a config to the console without applying any formatting
   """
   def print(config) do
+    config = Conform.Utils.sort_kwlist(config)
     if IO.ANSI.enabled? do
       colors = [
         number: :yellow,
@@ -53,6 +54,7 @@ defmodule Conform.SysConfig do
   """
   def prettify(config) do
     config
+    |> Conform.Utils.sort_kwlist
     |> Inspect.Algebra.to_doc(%Inspect.Opts{pretty: true, limit: 1000})
     |> Inspect.Algebra.format(80)
   end

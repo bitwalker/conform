@@ -27,7 +27,7 @@ defmodule ConfigTest do
          nodelist: [:'a@bar', :'b@bar'],
          some_val: :foo
        ]]
-    assert expected == sysconfig
+    assert expected == Conform.Utils.sort_kwlist(sysconfig)
   end
 
   test "issue #85" do

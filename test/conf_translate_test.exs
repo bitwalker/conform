@@ -86,7 +86,7 @@ defmodule ConfTranslateTest do
       {_output, 0} = System.cmd(script, ["--schema", schema_path, "--conf", conf_path, "--output-dir", sys_config_dir])
       {:ok, [sysconfig]} = :file.consult(sys_config_path)
       assert "test.schema.ez" = Path.basename(zip_path)
-      assert ^expected = sysconfig
+      assert ^expected = Conform.Utils.sort_kwlist(sysconfig)
       File.rm(sys_config_path)
     end)
   end
@@ -115,7 +115,7 @@ defmodule ConfTranslateTest do
       some: ["string value": nil],
       "starting string": [key: 'empty']
     ]
-    assert config == expect
+    assert Conform.Utils.sort_kwlist(config) == expect
   end
 
   test "can generate config as Elixir terms from existing config, .conf and schema" do
@@ -155,7 +155,7 @@ defmodule ConfTranslateTest do
       some: ["string value": nil],
       "starting string": [key: 'empty']
     ]
-    assert config == expect
+    assert Conform.Utils.sort_kwlist(config) == expect
   end
 
   test "can write config to disk as Erlang terms in valid app/sys.config format" do

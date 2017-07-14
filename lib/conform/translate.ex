@@ -6,7 +6,7 @@ defmodule Conform.Translate do
   alias Conform.Schema
   alias Conform.Schema.Mapping
   alias Conform.Schema.Transform
-  import Conform.Utils, only: [merge: 2, sort_kwlist: 1]
+  import Conform.Utils, only: [merge: 2]
 
   @type table_identifier :: non_neg_integer() | atom()
 
@@ -84,7 +84,6 @@ defmodule Conform.Translate do
     conf = apply_schema(conf_table_id, schema)
     config
     |> merge(conf)   # Merge the conf over config.exs/sys.config terms
-    |> sort_kwlist   # Sort the settings for easy navigation
   end
 
   defp apply_schema(conf_table_id, %Schema{} = schema) do
