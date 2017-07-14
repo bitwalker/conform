@@ -45,6 +45,9 @@ defmodule Conform.Schema.Validator do
 
   @callback validate(term, [term]) :: :ok | {:warn, String.t} | {:error, String.t}
 
+  def from_quoted(name) when is_atom(name) do
+    %Validator{definition: nil, validator: name}
+  end
   def from_quoted({_, _, module_path}) do
     %Validator{definition: nil, validator: Module.concat(module_path)}
   end
