@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file (at least to the extent possible, I am not infallible sadly).
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## 2.4.0
+
+### Fixed
+
+- Fixed issues with utf8 handling in conform escript
+- Fixed issue in releases with default validators causing parse issues
+- No longer colorizing output if run non-interactively
+- Fixed handling of build path in umbrellas
+
+### Added
+
+- Syntax highlighting of effective configuration when a tty is attached
+
 ## 2.3.4
 
 ### Fixed
