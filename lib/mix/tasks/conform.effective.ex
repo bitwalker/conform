@@ -68,23 +68,27 @@ defmodule Mix.Tasks.Conform.Effective do
 
   defp do_run(args) do
     Mix.Tasks.Loadpaths.run([])
-    app       = Mix.Project.config |> Keyword.get(:app)
+
+    project_config = Mix.Project.config()
+    app = project_config[:app]
     config_path = Path.join(File.cwd!, "config")
-    conf_path = case File.exists?(Path.join(config_path, "#{app}.#{args.env}.conf")) do
-                  true  -> Path.join(config_path, "#{app}.#{args.env}.conf")
-                  false -> Path.join(config_path, "#{app}.conf")
-                end
+    conf_path =
+      case File.exists?(Path.join(config_path, "#{app}.#{args.env}.conf")) do
+        true  -> Path.join(config_path, "#{app}.#{args.env}.conf")
+        false -> Path.join(config_path, "#{app}.conf")
+      end
     # Load the base configuration from config.exs if it exists, and validate it
     # If config.exs doesn't exist, proceed if a .conf file exists, otherwise there
     # is no configuration to display
-    config = case File.exists?("config/config.exs") do
-      true ->
+    config =
+      if File.exists?("config/config.exs") do
         # Switch environments when reading the config
         with_env args.env, fn ->
           Path.join([File.cwd!, "config", "config.exs"]) |> Mix.Config.read!
         end
-      false -> []
-    end
+      else
+        []
+      end
     # Read .conf
     conf =
       if File.exists?(conf_path) do
@@ -102,7 +106,10 @@ defmodule Mix.Tasks.Conform.Effective do
           table
       end
     # Load merged schemas
-    schema = Conform.Schema.schema_path(app) |> Conform.Schema.load!
+    schema =
+      app
+      |> Conform.Schema.schema_path
+      |> Conform.Schema.load!
     # Translate .conf -> config, using settings from config if one is
     # not provided in the .conf. If no setting is present in either
     # the config, or the .conf, the default from the schema is used.

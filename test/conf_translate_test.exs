@@ -58,35 +58,36 @@ defmodule ConfTranslateTest do
   end
 
   test "can generate config as Elixir terms from .conf and schema with imports" do
-    {:ok, cwd} = File.cwd
-    script = cwd <> "/conform"
-    example_app_path = "#{cwd}/"  <> Path.join(["test", "fixtures", "example_app"])
-    sys_config_path = "#{cwd}/"  <> Path.join(["test", "fixtures", "example_app", "config"])
-    conf_path = "#{cwd}/"  <> Path.join(["test", "fixtures", "example_app", "config", "test.conf"])
-    schema_path = "#{cwd}/"  <> Path.join(["test", "fixtures", "example_app", "config", "test.schema.exs"])
+    cwd = File.cwd!
+    script = Path.join([cwd, "priv", "bin", "conform"])
+    example_app_path = Path.join([cwd, "test", "fixtures", "example_app"])
+    sys_config_dir = Path.join([cwd, "test", "fixtures", "example_app", "config"])
+    sys_config_path = Path.join(sys_config_dir, "sys.config")
+    conf_path = Path.join([cwd, "test", "fixtures", "example_app", "config", "test.conf"])
+    schema_path = Path.join([cwd, "test", "fixtures", "example_app", "config", "test.schema.exs"])
 
-    File.touch(sys_config_path <> "/sys.config")
+    File.touch(sys_config_path)
     capture_io(fn ->
-      {:ok, zip_path, _build_files} = Mix.Project.in_project(:example_app, example_app_path,
-        fn _ ->
-          Mix.Task.run("deps.get")
-          Mix.Task.run("deps.compile")
-          Mix.Task.run("compile")
-          Mix.Task.run("conform.archive", [schema_path])
-        end)
+      {:ok, zip_path, _build_files} =
+        Mix.Project.in_project(:example_app, example_app_path,
+          fn _ ->
+            Mix.Task.run("deps.get")
+            Mix.Task.run("deps.compile")
+            Mix.Task.run("compile")
+            Mix.Task.run("conform.archive", [schema_path])
+          end)
 
       expected = [
         fake_app: [greeting: "hi!"],
         test: [another_val: 3, debug_level: :info, env: :prod]
       ]
 
-      _ = Mix.Task.run("escript.build", [path: script])
-      _ = :os.cmd("#{script} --schema #{schema_path} --conf #{conf_path} --output-dir #{sys_config_path}" |> to_char_list)
-      {:ok, [sysconfig]} = :file.consult(sys_config_path <> "/sys.config")
-      assert Path.basename(zip_path) == "test.schema.ez"
-      assert sysconfig == expected
-      File.rm(sys_config_path <> "/sys.config")
-      File.rm(script)
+      _ = Mix.Task.run("escript.build")
+      {_output, 0} = System.cmd(script, ["--schema", schema_path, "--conf", conf_path, "--output-dir", sys_config_dir])
+      {:ok, [sysconfig]} = :file.consult(sys_config_path)
+      assert "test.schema.ez" = Path.basename(zip_path)
+      assert ^expected = sysconfig
+      File.rm(sys_config_path)
     end)
   end
 

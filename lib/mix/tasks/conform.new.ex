@@ -30,10 +30,12 @@ defmodule Mix.Tasks.Conform.New do
     # Load the configuration for this app, and convert configuration to schema format
     output_path = Conform.Schema.schema_path(app)
     # Make sure we want to proceed if a schema already exists
-    continue? = case File.exists?(output_path) do
-      true  -> confirm_overwrite?(output_path)
-      false -> true
-    end
+    continue? =
+      if File.exists?(output_path) do
+        confirm_overwrite?(output_path)
+      else
+        true
+      end
     if continue? do
       # Ensure output directory exists
       output_path |> Path.dirname |> File.mkdir_p!
