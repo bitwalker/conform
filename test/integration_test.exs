@@ -79,7 +79,7 @@ defmodule IntegrationTest do
                   syslog: :on], logger:
                  [format: "$time $metadata[$level] $levelpad$message\n"],
                  myapp: [
-                   {:'Custom.Enum', :prod},
+                   {Custom.Enum, :prod},
                    {Some.Module, [val: :foo]},
                    {:another_val, {:on, [data: %{log: :warn}]}},
                    {:db, [hosts: [{"127.0.0.1", "8001"}]]}, {:some_val, :bar}, {:volume, 1}],

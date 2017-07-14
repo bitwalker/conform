@@ -43,7 +43,7 @@ defmodule ConfTranslateTest do
     myapp.another_val = active
 
     # Atom module name
-    myapp.Elixir.Some.Module.val = foo
+    myapp.Some.Module.val = foo
 
     # Provide documentation for myapp.Custom.Enum here.
     # Allowed values: dev, prod, test
@@ -104,7 +104,7 @@ defmodule ConfTranslateTest do
       ],
       logger: [format: "$time $metadata[$level] $levelpad$message\n"],
       myapp: [
-        {:'Custom.Enum', :dev},
+        {Custom.Enum, :dev},
         {Some.Module, [val: :foo]},
         another_val: {:on, [data: %{log: :warn}]},
         db: [hosts: [{"127.0.0.1", "8001"}]],
@@ -144,7 +144,7 @@ defmodule ConfTranslateTest do
       ],
       logger: [format: "$time $metadata[$level] $levelpad$message\n"],
       myapp: [
-        {:'Custom.Enum', :dev},
+        {Custom.Enum, :dev},
         {Some.Module, [val: :foo]},
         another_val: {:on, [data: %{log: :warn}]},
         db: [hosts: [{"127.0.0.1", "8001"}]],

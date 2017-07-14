@@ -194,10 +194,12 @@ defmodule Conform.Conf do
   end
 
   @doc """
-  Given a string or atom of the form `some.path.to.a.setting`,
-  it breaks it into a list of it's component parts, ensuring that
-  embedded module names are preserved, i.e.
-      "myapp.Some.Module.setting" => ['myapp', 'Some.Module', 'setting']
+  Given a string or atom of the form `some.path.to.a.setting`, it breaks it into a list of it's component parts,
+  ensuring that embedded module names are preserved, and that the `Elixir` prefix is added if missing and applicable:
+
+  ## Example
+
+      "myapp.Some.Module.setting" => ['myapp', 'Elixir.Some.Module', 'setting']
   """
   def get_key_path(key)
 
@@ -207,16 +209,30 @@ defmodule Conform.Conf do
     |> get_key_path
   end
   def get_key_path(key) when is_binary(key) do
-    key
-    |> String.split(".", trim: true)
-    |> join_module_parts
-    |> Enum.map(&String.to_char_list/1)
+    joined =
+      case String.split(key, ".", trim: true) do
+        [_app, "Elixir" | _] = parts ->
+          # This is an elixir module with the Elixir prefix
+          join_module_parts(parts)
+        [app, <<first_char::utf8, _::binary>> = mod | rest] when first_char in ?A..?Z ->
+          # This is an elixir module without the Elixir prefix
+          join_module_parts([app, "Elixir", mod | rest])
+        parts ->
+          join_module_parts(parts)
+      end
+    Enum.map(joined, &String.to_charlist/1)
   end
   def get_key_path(key) when is_list(key) do
-    key
-    |> Enum.map(&List.to_string/1)
-    |> join_module_parts
-    |> Enum.map(&String.to_char_list/1)
+    joined =
+      case Enum.map(key, &List.to_string/1) do
+        [_app, "Elixir" | _] = parts ->
+          join_module_parts(parts)
+        [app, <<first_char::utf8, _::binary>> = mod | rest] when first_char in ?A..?Z ->
+          join_module_parts([app, "Elixir", mod | rest])
+        parts ->
+          join_module_parts(parts)
+      end
+    Enum.map(joined, &String.to_charlist/1)
   end
 
   # Handles joining module name parts contained in an list of key parts
