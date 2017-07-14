@@ -356,7 +356,7 @@ defmodule Conform.Schema do
   def empty, do: %Schema{}
 
   defp to_schema([]),     do: %Schema{}
-  defp to_schema(config), do: to_schema(config, %Schema{})
+  defp to_schema(config), do: to_schema(Macro.escape(config), %Schema{})
   defp to_schema([], schema), do: schema
   defp to_schema([{app, settings} | config], schema) do
     mappings = settings

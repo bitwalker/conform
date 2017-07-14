@@ -33,7 +33,7 @@ defmodule ConfigTest do
   test "issue #85" do
     path = Path.join(["test", "configs", "issue_85.exs"])
     output_path = Path.join(["test", "configs", "issue_85.schema.exs"])
-    config_raw = path |> Mix.Config.read! |> Macro.escape
+    config_raw = path |> Mix.Config.read!
     config = path |> Mix.Config.read!
     assert [rocket: _] = config
 
@@ -46,7 +46,7 @@ defmodule ConfigTest do
   test "issue #114" do
     path = Path.join(["test", "configs", "issue_114.exs"])
     output_path = Path.join(["test", "configs", "issue_114.schema.exs"])
-    config_raw = path |> Mix.Config.read! |> Macro.escape
+    config_raw = path |> Mix.Config.read!
 
     schema = Conform.Schema.from_config(config_raw)
     assert %Schema{} = schema
@@ -58,7 +58,7 @@ defmodule ConfigTest do
   test "issue #75" do
     path = Path.join(["test", "configs", "raw_binary.exs"])
     output_path = Path.join(["test", "configs", "raw_binary.schema.exs"])
-    config_raw = path |> Mix.Config.read! |> Macro.escape
+    config_raw = path |> Mix.Config.read!
     config = path |> Mix.Config.read!
 
     assert [my_app: _] = config
@@ -80,7 +80,7 @@ defmodule ConfigTest do
 
   test "logger example" do
     path = Path.join(["test", "configs", "logger.exs"])
-    config_raw = path |> Mix.Config.read! |> Macro.escape
+    config_raw = path |> Mix.Config.read!
     config = path |> Mix.Config.read!
     assert [logger: [backends: [:console, {ExSyslog, :exsyslog_error}, {ExSyslog, :exsyslog_debug}]]] = config
     schema = Conform.Schema.from_config(config_raw)
@@ -108,7 +108,7 @@ defmodule ConfigTest do
 
   test "can translate config.exs containing nested lists to schema" do
     path   = Path.join(["test", "configs", "nested_list.exs"])
-    config = path |> Mix.Config.read! |> Macro.escape
+    config = path |> Mix.Config.read!
     schema = Conform.Schema.from_config(config)
     assert %Schema{extends: [], import: [],
             mappings: [%Mapping{
@@ -130,7 +130,7 @@ defmodule ConfigTest do
 
   test "can translate config.exs containing a single nested list to schema" do
     path   = Path.join(["test", "configs", "single_nested_list.exs"])
-    config = path |> Mix.Config.read! |> Macro.escape
+    config = path |> Mix.Config.read!
     schema = Conform.Schema.from_config(config)
     assert %Schema{extends: [], import: [],
                    mappings: [%Mapping{
@@ -152,7 +152,7 @@ defmodule ConfigTest do
 
   test "can translate config.exs + schema + conf with nested lists to sys.config" do
     path   = Path.join(["test", "configs", "nested_list.exs"])
-    config_raw = path |> Mix.Config.read! |> Macro.escape
+    config_raw = path |> Mix.Config.read!
     config = path |> Mix.Config.read!
     schema = Conform.Schema.from_config(config_raw)
     {:ok, conf} = Path.join(["test", "confs", "nested_list.conf"]) |> Conform.Conf.from_file

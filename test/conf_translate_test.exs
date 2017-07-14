@@ -173,7 +173,7 @@ defmodule ConfTranslateTest do
 
   test "can translate with nested lists to conf" do
     path   = Path.join(["test", "configs", "nested_list.exs"])
-    config = path |> Mix.Config.read! |> Macro.escape
+    config = path |> Mix.Config.read!
     schema = Conform.Schema.from_config(config)
     conf   = Conform.Translate.to_conf(schema)
     expected = """

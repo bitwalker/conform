@@ -92,7 +92,7 @@ defmodule IntegrationTest do
 
   test "can generate default schema from config" do
     config_path = Path.join(["test", "configs", "nested_list.exs"])
-    config = Mix.Config.read!(config_path) |> Macro.escape
+    config = Mix.Config.read!(config_path)
     schema = Conform.Schema.from_config(config)
     result = Conform.Schema.stringify(schema, false)
     assert """

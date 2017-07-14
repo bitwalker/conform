@@ -39,7 +39,7 @@ defmodule Mix.Tasks.Conform.New do
       output_path |> Path.dirname |> File.mkdir_p!
       if File.exists?(config_path) do
         # Load existing config and convert it to quoted schema terms
-        config = Mix.Config.read!(config_path) |> Macro.escape
+        config = Mix.Config.read!(config_path)
         schema = Conform.Schema.from_config(config)
         # Write the generated schema to `output_path`
         Conform.Schema.write_quoted(schema, output_path)
