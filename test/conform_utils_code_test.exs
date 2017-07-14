@@ -1,5 +1,6 @@
 defmodule ConformCodeTest do
   use ExUnit.Case
+  import ExUnit.CaptureIO
 
   test "can stringify function and case blocks" do
     source = """
@@ -205,21 +206,23 @@ defmodule ConformCodeTest do
   end
 
   test "generating a new schema and conf from complex config should work out of the box" do
-    config_path = Path.join([__DIR__, "configs", "issue_122.exs"])
-    schema_path = Path.join([__DIR__, "schemas", "issue_122.schema.exs"])
-    conf_path = Path.join([__DIR__, "confs", "issue_122.conf"])
-    File.rm(schema_path)
-    File.rm(conf_path)
-    config = Mix.Config.read!(config_path) |> Macro.escape
-    schema = Conform.Schema.from_config(config)
-    Conform.Schema.write_quoted(schema, schema_path)
-    # Convert configuration to schema format
-    assert %Conform.Schema{} = schema = Conform.Schema.load!(schema_path)
-    # Convert to .conf
-    conf = Conform.Translate.to_conf(schema)
-    # Output configuration to `output_path`
-    File.write!(conf_path, conf)
-    File.rm(schema_path)
-    File.rm(conf_path)
+    capture_io(fn ->
+      config_path = Path.join([__DIR__, "configs", "issue_122.exs"])
+      schema_path = Path.join([__DIR__, "schemas", "issue_122.schema.exs"])
+      conf_path = Path.join([__DIR__, "confs", "issue_122.conf"])
+      File.rm(schema_path)
+      File.rm(conf_path)
+      config = Mix.Config.read!(config_path)
+      schema = Conform.Schema.from_config(config)
+      Conform.Schema.write_quoted(schema, schema_path)
+      # Convert configuration to schema format
+      assert %Conform.Schema{} = schema = Conform.Schema.load!(schema_path)
+      # Convert to .conf
+      conf = Conform.Translate.to_conf(schema)
+      # Output configuration to `output_path`
+      File.write!(conf_path, conf)
+      File.rm(schema_path)
+      File.rm(conf_path)
+    end)
   end
 end
