@@ -11,7 +11,7 @@ defmodule Conform.Mixfile do
     [app: :conform,
      version: "2.3.2",
      elixir: "~> 1.3",
-     escript: [main_module: Conform],
+     escript: [main_module: Conform, path: "priv/bin/conform", embed_elixir: false],
      compilers: compilers(@do_peg_compile?),
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,

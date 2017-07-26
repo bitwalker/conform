@@ -6,4 +6,3 @@ help:
 release: ## Builds and generates escript for release
 	@rm priv/bin/conform
 	@MIX_ENV=prod mix do compile, escript.build
-	@mv conform priv/bin/conform
