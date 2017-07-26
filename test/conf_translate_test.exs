@@ -82,7 +82,7 @@ defmodule ConfTranslateTest do
         test: [another_val: 3, debug_level: :info, env: :prod]
       ]
 
-      _ = Mix.Task.run("escript.build")
+      _ = Mix.Task.run("escript.build", ["--force"])
       {_output, 0} = System.cmd(script, ["--schema", schema_path, "--conf", conf_path, "--output-dir", sys_config_dir])
       {:ok, [sysconfig]} = :file.consult(sys_config_path)
       assert "test.schema.ez" = Path.basename(zip_path)
@@ -105,6 +105,7 @@ defmodule ConfTranslateTest do
     #capture_io(fn ->
       expected = [my_app: [utf8: "Fixé"]]
 
+      _ = Mix.Task.run("escript.build", ["--force"])
       {_output, 0} = System.cmd(script, ["--schema", schema_path, "--conf", conf_path, "--output-dir", utf8_dir])
       {:ok, [sysconfig]} = :file.consult(Path.join([utf8_dir, "sys.config"]))
       assert ^expected = sysconfig
