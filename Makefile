@@ -5,4 +5,4 @@ help:
 
 release: ## Builds and generates escript for release
 	@rm -f priv/bin/conform
-	@MIX_ENV=prod mix do compile, escript.build --force
+	@MIX_ENV=prod EMBED_ELIXIR=false mix do compile, escript.build --force

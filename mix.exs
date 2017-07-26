@@ -8,10 +8,17 @@ defmodule Conform.Mixfile do
   end
 
   def project do
+    embed_elixir? =
+      if System.get_env("EMBED_ELIXIR") == "false" do
+        false
+      else
+        true
+      end
+
     [app: :conform,
      version: "2.5.0",
      elixir: "~> 1.3",
-     escript: [main_module: Conform, path: "priv/bin/conform", embed_elixir: false],
+     escript: [main_module: Conform, path: "priv/bin/conform", embed_elixir: embed_elixir?],
      compilers: compilers(@do_peg_compile?),
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
