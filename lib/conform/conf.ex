@@ -66,7 +66,7 @@ defmodule Conform.Conf do
       [{['lager', 'handlers', 'console', 'level'], :info},
        {['lager', 'handlers', 'file', 'error'], '/var/log/error.log'}]
   """
-  @spec get(non_neg_integer() | atom(), String.t | [char_list]) :: [{[atom], term}] | {:error, term}
+  @spec get(non_neg_integer() | atom(), String.t | [charlist]) :: [{[atom], term}] | {:error, term}
   def get(table, key) when is_binary(key), do: get(table, get_key_path(key))
   def get(table, query) when is_list(query) do
     # Execute query
@@ -176,7 +176,7 @@ defmodule Conform.Conf do
       [{['lager', 'handlers', 'console', 'level'], :info},
        {['lager', 'handlers', 'file', 'error'], '/var/log/error.log'}]
   """
-  @spec find(non_neg_integer() | atom(), String.t | [char_list]) :: [{[atom], term}]
+  @spec find(non_neg_integer() | atom(), String.t | [charlist]) :: [{[atom], term}]
   def find(table, key) when is_binary(key), do: get_matches(table, get_key_path(key))
   def find(table, key) when is_list(key),   do: get_matches(table, key)
 
@@ -184,7 +184,7 @@ defmodule Conform.Conf do
   Removes any key/value pairs from the conf table which match the provided key or
   are a child of the provided key.
   """
-  @spec remove(non_neg_integer() | atom(), String.t | [char_list]) :: :ok
+  @spec remove(non_neg_integer() | atom(), String.t | [charlist]) :: :ok
   def remove(table, key) when is_binary(key), do: remove(table, get_key_path(key))
   def remove(table, key) when is_list(key) do
     case get_matches(table, key) do

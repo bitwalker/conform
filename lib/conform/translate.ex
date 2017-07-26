@@ -489,7 +489,7 @@ defmodule Conform.Translate do
       _                               -> {false, nil}
     end
     if mod do
-      [first|_] = Atom.to_char_list(mod)
+      [first|_] = Atom.to_charlist(mod)
       mod = case String.match?(<<first::utf8>>, ~r/[A-Z]/) do
         true  -> Module.concat([mod])
         false -> mod

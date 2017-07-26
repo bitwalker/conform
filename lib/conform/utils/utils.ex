@@ -157,7 +157,7 @@ defmodule Conform.Utils do
       [console: [level: :info],
        file: [info: '/var/log/info.log', error: '/var/log/error.log']]]]
   """
-  @spec results_to_tree([{[char_list], term}], [char_list] | nil) :: Keyword.t
+  @spec results_to_tree([{[charlist], term}], [charlist] | nil) :: Keyword.t
   def results_to_tree(selected, key \\ []) do
     Enum.reduce(selected, [], fn {key_path, v}, acc ->
       key_path = Enum.map(key_path -- key, &List.to_atom/1)

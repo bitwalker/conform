@@ -225,13 +225,13 @@ defmodule Conform.Utils.Code do
   defp to_heredoc(<<>>, :open, acc) do
     <<acc :: binary, "#{tabs(get_indent())}\"\"\"">>
     |> String.split("\n", trim: true)
-    |> Enum.map(&String.strip/1)
+    |> Enum.map(&String.trim/1)
     |> Enum.join("\n" <> tabs(get_indent()))
   end
   defp to_heredoc(<<>>, :closed, acc) do
     acc
     |> String.split("\n", trim: true)
-    |> Enum.map(&String.strip/1)
+    |> Enum.map(&String.trim/1)
     |> Enum.join("\n" <> tabs(get_indent()))
   end
 

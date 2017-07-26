@@ -46,7 +46,7 @@ defmodule Mix.Tasks.Conform.Archive do
               dest_path = Path.join(["#{app}", "config", "#{app}.schema.exs"])
               File.mkdir_p!(Path.join(build_dir, Path.dirname(dest_path)))
               File.cp!(src_path, Path.join(build_dir, dest_path))
-              [String.to_char_list(dest_path) | acc]
+              [String.to_charlist(dest_path) | acc]
             else
               acc
             end
@@ -61,7 +61,7 @@ defmodule Mix.Tasks.Conform.Archive do
             path
             |> File.ls!
             |> Enum.map(fn filename -> Path.join(path, filename) end)
-            |> Enum.map(&String.to_char_list/1)
+            |> Enum.map(&String.to_charlist/1)
             |> Enum.concat(acc)
           end)
         # create archive
