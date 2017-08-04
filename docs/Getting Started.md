@@ -178,7 +178,7 @@ A schema is basically a single data structure. A keyword list, containing the fo
       """,
       to: "lager.handlers.lager_file_backend.info",
       datatype: :binary,
-      default: "/var/log/console.log"
+      default: "/var/log/console.log",
       env_var: "LAGER_INFO_FILE"
     ],
     "my_app.db.hosts": [
