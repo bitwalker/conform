@@ -136,7 +136,11 @@ defmodule Conform.Translate do
                      nil -> mapping.default
                      var when is_binary(var) ->
                        case System.get_env(var) do
-                         nil -> mapping.default
+                         nil ->
+                           case mapping.default do
+                             nil -> raise missing_env_var(var, key)
+                             default -> default
+                           end
                          val -> parse_datatype(datatype, [val], mapping)
                        end
                    end
@@ -174,7 +178,11 @@ defmodule Conform.Translate do
           nil -> mapping.default
           var ->
             case System.get_env(var) do
-              nil -> mapping.default
+              nil ->
+                case mapping.default do
+                  nil -> raise missing_env_var(var, key)
+                  default -> default
+                end
               val -> parse_datatype(datatype, [val], mapping)
             end
         end
@@ -244,7 +252,11 @@ defmodule Conform.Translate do
           {stripped, default}
         var ->
           case System.get_env(var) do
-            nil -> {stripped, default}
+            nil ->
+              case default do
+                nil -> raise missing_env_var(var, key)
+                default -> {stripped, default}
+              end
             val -> {stripped, parse_datatype(mapping.datatype, [val], mapping)}
           end
       end
@@ -529,4 +541,7 @@ defmodule Conform.Translate do
     |> Enum.join(".")
   end
 
+  defp missing_env_var(var, key) do
+    "Configuration Error: environment variable $#{var} is not set and no default value for #{key} is present."
+  end
 end
