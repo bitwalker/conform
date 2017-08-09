@@ -28,8 +28,9 @@ defmodule Conform.Translate do
     Enum.reduce mappings, "", fn %Mapping{name: key} = mapping, result ->
       # If the datatype of this mapping is an enum,
       # write out the allowed values
-      datatype             = mapping.datatype || :binary
-      doc                  = mapping.doc || ""
+      datatype = mapping.datatype || :binary
+      doc = mapping.doc || ""
+      commented? = mapping.commented == true
       {custom?, mod, args} = is_custom_type?(datatype)
       comments = cond do
         custom? ->
@@ -58,6 +59,8 @@ defmodule Conform.Translate do
       case mapping.default do
         nil ->
           <<result::binary, "# #{key} = \n\n">>
+        default when commented? ->
+          <<result::binary, "# #{key} = #{write_datatype(datatype, default, key)}\n\n">>
         default ->
           <<result::binary, "#{key} = #{write_datatype(datatype, default, key)}\n\n">>
       end
