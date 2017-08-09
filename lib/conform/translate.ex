@@ -140,7 +140,7 @@ defmodule Conform.Translate do
         for {conf_key, value} <- results, not datatype in [:complex, [list: :complex]] do
           parsed = case value do
             nil -> default
-            _   -> parse_datatype(datatype, value, mapping)
+            _   -> parse_datatype(datatype, List.wrap(value), mapping)
           end
           :ets.insert(table, {conf_key, parsed})
         end
