@@ -136,11 +136,7 @@ defmodule Conform.Translate do
                      nil -> mapping.default
                      var when is_binary(var) ->
                        case System.get_env(var) do
-                         nil ->
-                           case mapping.default do
-                             nil -> raise missing_env_var(var, key)
-                             default -> default
-                           end
+                         nil -> mapping.default
                          val -> parse_datatype(datatype, [val], mapping)
                        end
                    end
