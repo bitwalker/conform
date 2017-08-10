@@ -160,4 +160,15 @@ defmodule ConfigTest do
     assert [my_app: [rx_pattern: [~r/[A-Z]+/],
                      sublist: [[opt1: "val1", opt2: "val two"], [opt1: "val3", opt2: "val-4"]]]] == sysconfig
   end
+
+  test "raises runtime error if env var value is missing and there is no default value" do
+    schema_path = Path.join(["test", "schemas", "env_var.schema.exs"])
+    schema = Conform.Schema.load!(schema_path)
+    conf_path = Path.join(["test", "confs", "test.conf"])
+    {:ok, conf} = Conform.Conf.from_file(conf_path)
+
+    assert_raise RuntimeError, ~r/^Configuration Error/, fn ->
+      Conform.Translate.to_config(schema, [], conf)
+    end
+  end
 end
