@@ -209,4 +209,16 @@ defmodule ConfTranslateTest do
     """
     assert expected == conf
   end
+
+  test "check transform overwrite" do
+    path = Path.join(["test", "schemas", "transform_overwrite_schema.exs"])
+    schema = Conform.Schema.load!(path)
+    conf = """
+    fld1.fld2.fld3=3
+    fld1.fld2.fld4=4
+    """
+    {:ok, parsed} = Conform.Conf.from_binary(conf)
+    config = Conform.Translate.to_config(schema, [], parsed)
+    assert config == [fld1: [%{fld3: 3, fld4: 4}]]
+  end
 end
