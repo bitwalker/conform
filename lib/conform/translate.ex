@@ -351,6 +351,17 @@ defmodule Conform.Translate do
         raise TranslateError, message: "Invalid boolean value for #{stringify_key(name)}."
     end
   end
+  @regex_pattern ~r/^~r\/(?<source>.+)\/(?<opts>[A-Za-z]+)?$/u
+  defp parse_datatype_single(:regex, value, %Mapping{name: name}) do
+    case Regex.match?(@regex_pattern, value) do
+      %{"source" => source, "opts" => opts} ->
+        Regex.compile!(source, opts)
+      %{"source" => source} ->
+        Regex.compile!(source)
+      _ ->
+        raise TranslateError, message: "Invalid regex value for #{stringify_key(name)}"
+    end
+  end
   defp parse_datatype_single(:integer, value, %Mapping{name: name}) do
     case Integer.parse("#{value}") do
       {num, _} -> num
@@ -467,8 +478,11 @@ defmodule Conform.Translate do
   defp write_datatype([list: list_type], value, setting) do
     write_datatype([list: list_type], [value], setting)
   end
+  defp write_datatype(:regex, %Regex{} = regex, _setting) do
+    "~r/" <> Regex.source(regex) <> "/" <> Regex.opts(regex)
+  end
   defp write_datatype(:binary, %Regex{} = regex, _setting) do
-    "~r/" <> Regex.source(regex) <> "/"
+    "~r/" <> Regex.source(regex) <> "/" <> Regex.opts(regex)
   end
   defp write_datatype(:binary, value, _setting) do
     <<?", "#{value}", ?">>
