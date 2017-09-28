@@ -277,18 +277,36 @@ defmodule Conform.Translate do
 
   defp apply_transforms([], _table), do: true
   defp apply_transforms([%Transform{path: key, transform: transform} | rest], table) do
-    transformed = case transform do
-      t when is_atom(t) ->
-        t.transform(table)
-      t when is_function(t, 1) ->
-        t.(table)
-      _ ->
-        problem_key = Enum.map(key, &List.to_string/1) |> Enum.join(".")
-        Conform.Utils.error("Invalid transform for #{problem_key}. Must be a function of arity 1")
-        exit(1)
-    end
+    transformed =
+      case transform do
+        t when is_atom(t) ->
+          t.transform(table)
+        t when is_function(t, 1) ->
+          t.(table)
+        _ ->
+          problem_key = Enum.map(key, &List.to_string/1) |> Enum.join(".")
+          Conform.Utils.error("Invalid transform for #{problem_key}. Must be a function of arity 1")
+          exit(:fatal)
+      end
     :ets.insert(table, {key, transformed})
-    apply_transforms(rest, table)
+  rescue
+    err ->
+      problem_key = Enum.map(key, &List.to_string/1) |> Enum.join(".")
+      msg = Exception.message(err) <> "\n" <> Exception.format_stacktrace(System.stacktrace)
+      Conform.Utils.error("Transform for #{problem_key} raised an error: " <> msg)
+      raise "Unable to translate schema, invalid transform for #{problem_key}"
+  catch
+    :exit, :fatal ->
+      problem_key = Enum.map(key, &List.to_string/1) |> Enum.join(".")
+      raise "Unable to translate schema, invalid transform for #{problem_key}"
+    type, kind ->
+      problem_key = Enum.map(key, &List.to_string/1) |> Enum.join(".")
+      msg = Exception.format(type, kind, System.stacktrace)
+      Conform.Utils.error("Transform for #{problem_key} raised an error: " <> msg)
+      raise "Unable to translate schema, invalid transform for #{problem_key}"
+  else
+    _ ->
+      apply_transforms(rest, table)
   end
 
   # Add a .conf-style comment to the given line
