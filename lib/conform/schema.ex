@@ -95,11 +95,33 @@ defmodule Conform.Schema do
     end
     case res do
       {:ok, quoted} ->
-        case Code.eval_quoted(quoted, file: "nofile", line: 0) do
-          {schema, _} when is_list(schema) ->
+        wrapped =
+          quote do
+            try do
+              res = unquote(quoted)
+              {:ok, res}
+            rescue
+              err ->
+                {:error, err, System.stacktrace}
+            catch
+              type, err ->
+                {:error, {type, err}, System.stacktrace}
+            end
+          end
+        case Code.eval_quoted(wrapped, file: "nofile", line: 0) do
+          {{:ok, schema}, _} when is_list(schema) ->
             {:ok, schema}
-          {other, _} ->
+          {{:ok, other}, _} ->
             {:error, {0, "Invalid schema: ", "Expected schema, but got #{inspect other}"}}
+          {{:error, err, trace}, _} ->
+            if Exception.exception?(err) do
+              msg = Exception.message(err) <> "\n" <> Exception.format_stacktrace(trace)
+              {:error, {0, "Error occurred while evaluating schema: #{msg}"}}
+            else
+              {type, error} = err
+              msg = Exception.format(type, error, trace)
+              {:error, {0, "Error occurred while evaluating schema: #{msg}"}}
+            end
         end
       {:error, _} = err ->
         err
