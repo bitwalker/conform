@@ -84,6 +84,21 @@ defmodule Conform do
   end
 
   defp process(%Options{} = options) do
+    do_process(options)
+  rescue
+    err ->
+      error("Conform encountered an unexpected error: " <> Exception.message(err) <> "\n" <>
+        Exception.format_stacktrace(System.stacktrace))
+        System.halt(1)
+  catch
+    :exit, :fatal ->
+       System.halt(1)
+    type, kind ->
+      error("Conform encountered an unexpected error: " <> Exception.format(type, kind, System.stacktrace))
+       System.halt(1)
+  end
+
+  defp do_process(options) do
     # Read .conf and .schema.exs
     final = case Conform.Conf.from_file(options.conf) do
       {:error, reason} ->
@@ -124,10 +139,10 @@ defmodule Conform do
   end
 
   defp error(message) do
-    IO.ANSI.red <> message <> IO.ANSI.reset |> IO.puts
+    IO.puts(IO.ANSI.red <> message <> IO.ANSI.reset)
   end
   defp success(message) do
-    IO.ANSI.green <> message <> IO.ANSI.reset |> IO.puts
+    IO.puts(IO.ANSI.green <> message <> IO.ANSI.reset)
   end
 
 end
