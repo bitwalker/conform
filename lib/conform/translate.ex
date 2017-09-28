@@ -80,7 +80,7 @@ defmodule Conform.Translate do
   Translate the provided .conf to it's .config representation using the provided schema.
   """
   @spec to_config(%Conform.Schema{}, [{term, term}] | [], table_identifier) :: term
-  def to_config(%Schema{} = schema, config, conf_table_id) when is_integer(conf_table_id) do
+  def to_config(%Schema{} = schema, config, conf_table_id) do
     conf = apply_schema(conf_table_id, schema)
     config
     |> merge(conf)   # Merge the conf over config.exs/sys.config terms
