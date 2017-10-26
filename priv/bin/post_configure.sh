@@ -1,5 +1,5 @@
 #!/bin/sh
-if [ -z "$CONFORM_IGNORE" ]; then
+if [ -z "$RELEASE_MUTABLE_IGNORE" ]; then
     # Set CONFORM_SCHEMA_PATH, the path to the schema.exs file to use
     # Use $RELEASE_CONFIG_DIR/$REL_NAME.schema.exs if exists, otherwise releases/VSN/$REL_NAME.schema.exs
     if [ -z "$CONFORM_SCHEMA_PATH" ]; then
