@@ -180,8 +180,8 @@ defmodule Mix.Tasks.Conform.Effective do
     options = case {app, key, schema} do
       {nil, nil, nil}  -> %{:type => :all}
       {_, _, true} -> %{:type => :schema}
-      {^app, _, _} -> %{:type => :app, :app => app |> String.to_atom}
-      {_, ^key, _} -> %{:type => :key, :key => key}
+      {^app, nil, nil} -> %{:type => :app, :app => app |> String.to_atom}
+      {nil, ^key, nil} -> %{:type => :key, :key => key}
     end
     options = Map.put(options, :output, output)
 
