@@ -26,9 +26,10 @@ users to configure your application. Once you've finished editing the schema, yo
 ### Command Line
 
 Conform provides an escript, `priv/bin/conform` (or you can compile it manually with `MIX_ENV=prod mix escript.build` a checkout from git),
-which you can drop anywhere and use.
+which you can drop anywhere and use. You may need to set `ERL_LIBS` to run it
+(ie: ERL_LIBS=/usr/share/elixir/1.5.1/lib/:./lib escript ./priv/bin/conform --help`).
 
-Usage instructions are provided with `conform --help` wk
+Usage instructions are provided with `conform --help`:
 
 ```
 ↪ ./conform --help
