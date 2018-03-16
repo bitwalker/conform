@@ -31,9 +31,11 @@ if [ -f "$CONFORM_SCHEMA_PATH" ]; then
 
         __conform="$REL_DIR/conform"
         # Clobbers input sys.config
-        "$BINDIR"/escript "$__conform" --code-path "$__conform_code_path" --conf "$CONFORM_CONF_PATH" --schema "$CONFORM_SCHEMA_PATH" --config "$SYS_CONFIG_PATH" --output-dir "$(dirname $SYS_CONFIG_PATH)"
-        exit_status="$?"
-        if [ "$exit_status" -ne 0 ]; then
+        if ! result="$("$BINDIR"/escript "$__conform" --code-path "$__conform_code_path" --conf "$CONFORM_CONF_PATH" --schema "$CONFORM_SCHEMA_PATH" --config "$SYS_CONFIG_PATH" --output-dir "$(dirname $SYS_CONFIG_PATH)")"; then
+            exit_status="$?"
+            echo "Error reading $CONFORM_CONF_PATH . This may be due to syntax errors or unquoted values" >&2
+            echo "The parser reported:" >&2
+            echo "$result" >&2
             exit "$exit_status"
         fi
         if ! grep -q '^%%' "$SYS_CONFIG_PATH" ; then
