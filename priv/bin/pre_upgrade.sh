@@ -33,9 +33,11 @@ if [ -f "$CONFORM_SCHEMA_PATH" ]; then
 
         __conform="$REL_DIR/../$TARGET_VERSION/conform"
         # Clobbers input sys.config
-        result="$("$BINDIR/escript" "$__conform" --conf "$CONFORM_CONF_PATH" --schema "$CONFORM_SCHEMA_PATH" --config "$REL_DIR/../$TARGET_VERSION/sys.config" --output-dir "$REL_DIR/../$TARGET_VERSION")"
-        exit_status="$?"
-        if [ "$exit_status" -ne 0 ]; then
+        if ! result="$("$BINDIR/escript" "$__conform" --conf "$CONFORM_CONF_PATH" --schema "$CONFORM_SCHEMA_PATH" --config "$REL_DIR/../$TARGET_VERSION/sys.config" --output-dir "$REL_DIR/../$TARGET_VERSION")"; then
+            exit_status="$?"
+            echo "Error reading $CONFORM_CONF_PATH . This may be due to syntax errors or unquoted values" >&2
+            echo "The parser reported:" >&2
+            echo "$result" >&2
             exit "$exit_status"
         fi
         tmpfile=$(mktemp "${SYS_CONFIG_PATH}.XXXXXX")
