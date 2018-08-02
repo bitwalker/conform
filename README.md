@@ -7,6 +7,21 @@ See the full documentation [here](https://hexdocs.pm/conform).
 
 The definition of conform is "Adapt or conform oneself to new or different conditions". As this library is used to adapt your application to its deployed environment, I think it's rather fitting. It's also a play on the word configuration, and the fact that Conform uses an init-style configuration, maintained in a `.conf` file.
 
+# Deprecation Notice
+
+**IMPORTANT: I am discontinuing maintenance of this project moving forward, in favor of a replacement based
+on TOML, found [here](https://github.com/bitwalker/toml-elixir). It is has a formal specification and supports
+much richer ways of expressing complex data (maps and lists), and supports several Elixir data types out of
+the box. The `toml-elixir` library also provides a simple transformation mechnanism for extending the basic set
+of datatypes with your own (including structs and records). Everything you could accomplish with Conform is doable
+with `toml-elixir`, and in a cleaner, easier to maintain format. In addition, it has full support for Distillery 2.0's
+config provider framework, allowing you to natively configure your Elixir releases with TOML config files**
+
+If anyone is interested in taking over maintainership of this library, please reach out to me here via issue, or
+by email, and I'll be glad to discuss the transition with you.
+
+--------
+
 ## Features
 
 It provides the following features:
