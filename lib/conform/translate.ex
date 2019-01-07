@@ -113,9 +113,15 @@ defmodule Conform.Translate do
       # Map simple types
       apply_mappings(mappings, conf_table_id)
       # Apply translations to aggregated values
-      apply_transforms(transforms, conf_table_id)
+      transform_table_id = :ets.new(:temp_transform, [:set, keypos: 1])
+      apply_transforms(transforms, conf_table_id, transform_table_id)
       # Fetch config from ETS, convert to config tree
-      :ets.tab2list(conf_table_id) |> Conform.Utils.results_to_tree
+      tree = :ets.tab2list(conf_table_id) |> Conform.Utils.results_to_tree
+      # Fetch transformations
+      transform_tree = :ets.tab2list(transform_table_id) |> Conform.Utils.results_to_tree
+      :ets.delete(transform_table_id)
+      # Overwrite config with transformations
+      Conform.Utils.merge(tree, transform_tree)
     catch
       err ->
         Conform.Logger.error("Error thrown when constructing configuration: #{Macro.to_string(err)}")
@@ -284,8 +290,8 @@ defmodule Conform.Translate do
     {selected, complex}
   end
 
-  defp apply_transforms([], _table), do: true
-  defp apply_transforms([%Transform{path: key, transform: transform} | rest], table) do
+  defp apply_transforms([], _table, _transform_table), do: true
+  defp apply_transforms([%Transform{path: key, transform: transform} | rest], table, transform_table) do
     transformed = case transform do
       t when is_atom(t) ->
         t.transform(table)
@@ -295,8 +301,8 @@ defmodule Conform.Translate do
         problem_key = Enum.map(key, &List.to_string/1) |> Enum.join(".")
         Conform.Logger.error("Invalid transform for #{problem_key}. Must be a function of arity 1")
     end
-    :ets.insert(table, {key, transformed})
-    apply_transforms(rest, table)
+    :ets.insert(transform_table, {key, transformed})
+    apply_transforms(rest, table, transform_table)
   end
 
   # Add a .conf-style comment to the given line
