@@ -100,6 +100,18 @@ defmodule IntegrationTest do
       extends: [],
       import: [],
       mappings: [
+        "my_app.rx_pattern": [
+          commented: false,
+          datatype: [
+            list: :binary
+          ],
+          default: [
+            ~r/[A-Z]+/
+          ],
+          doc: "Provide documentation for my_app.rx_pattern here.",
+          hidden: false,
+          to: "my_app.rx_pattern"
+        ],
         "my_app.sublist": [
           commented: false,
           datatype: [
@@ -114,18 +126,6 @@ defmodule IntegrationTest do
           doc: "Provide documentation for my_app.sublist here.",
           hidden: false,
           to: "my_app.sublist"
-        ],
-        "my_app.rx_pattern": [
-          commented: false,
-          datatype: [
-            list: :binary
-          ],
-          default: [
-            ~r/[A-Z]+/
-          ],
-          doc: "Provide documentation for my_app.rx_pattern here.",
-          hidden: false,
-          to: "my_app.rx_pattern"
         ]
       ],
       transforms: [],

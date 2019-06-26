@@ -322,7 +322,7 @@ defmodule Conform.Schema do
     schema |> Map.to_list |> Keyword.delete(:__struct__) |> Enum.map(&to_list/1)
   end
   defp to_list({k, v}) when is_list(v) do
-    {k, Enum.map(v, &to_list/1)}
+    {k, Enum.map(Enum.sort(v, &do_sort/2), &to_list/1)}
   end
   defp to_list(%Conform.Schema.Validator{name: nil, definition: nil, validator: v}), do: v
   defp to_list(%Conform.Schema.Validator{name: name, definition: v}), do: {String.to_atom(name), v}
@@ -343,6 +343,14 @@ defmodule Conform.Schema do
   defp to_list(v) when is_map(v) do
     v |> Map.to_list |> Keyword.delete(:__struct__)
   end
+
+  defp do_sort(m1, m2) do
+    key(m1) <= key(m2)
+  end
+
+  defp key(%Conform.Schema.Mapping{name: name}), do: name
+  defp key(%Conform.Schema.Validator{name: name}), do: name
+  defp key(k), do: k
 
   @doc """
   Convert standard configuration to quoted schema format
