@@ -42,7 +42,7 @@
       end
       console_handler = case Conform.Conf.get(conf, "lager.handlers.lager_console_backend.level") do
         []              -> []
-        [{path, level}] -> [lager_console_backend: level]
+        [{_path, level}] -> [lager_console_backend: level]
       end
       Conform.Conf.remove(conf, "lager.handlers")
       console_handler ++ file_handlers

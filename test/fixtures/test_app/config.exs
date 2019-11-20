@@ -6,7 +6,7 @@ proxy = [{:default_route, {{127,0,0,1}, 1813, "secret"}},
 
 config :test,
   env: :wat,
-  "debug_level": {:on, [:passive]}
+  debug_level: {:on, [:passive]}
 
 config :test, :servers,
   proxy: [{ {:eradius_proxy, 'proxy', proxy}, [{'127.0.0.1', "secret"}] }]

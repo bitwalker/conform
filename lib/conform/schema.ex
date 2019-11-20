@@ -242,7 +242,7 @@ defmodule Conform.Schema do
   def coalesce do
     # Get schemas from all dependencies
     # Merge schemas for all deps
-    Mix.Dep.loaded([])
+    Mix.Dep.load_on_environment([env: Mix.env])
     |> Enum.map(fn %Mix.Dep{app: app, opts: opts} ->
          Mix.Project.in_project(app, opts[:dest], opts, fn _ -> load!(app) end)
        end)
@@ -430,7 +430,7 @@ defmodule Conform.Schema do
   defp get_extends_schema(app_name, src_schema_path) do
     # Attempt loading from deps if Mix is available
     schema_path = try do
-      paths = Mix.Dep.loaded(env: Mix.env)
+      paths = Mix.Dep.load_on_environment([env: Mix.env])
               |> Enum.filter(fn %Mix.Dep{app: app} -> app == app_name end)
               |> Enum.map(fn %Mix.Dep{opts: opts} ->
                 Keyword.get(opts, :dest, Keyword.get(opts, :path))
@@ -440,10 +440,10 @@ defmodule Conform.Schema do
         []         -> nil
         [app_path] -> Path.join([app_path, "config", "#{app_name}.schema.exs"])
       end
-    catch
-      _,_ -> nil
     rescue
       _ -> nil
+    catch
+      _,_ -> nil
     end
     # Next try locating by application
     schema_path = case schema_path do

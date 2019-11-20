@@ -2,7 +2,7 @@
   extends: [],
   import: [],
   mappings: [
-    "utf8": [
+    utf8: [
       commented: false,
       datatype: :binary,
       default: "Fixé",

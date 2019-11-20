@@ -31,7 +31,7 @@
       doc: "A simple list",
       to: "my_app.nodelist",
       datatype: [list: :atom],
-      default: [:'a@foo', :'b@foo']
+      default: [:a@foo, :b@foo]
     ],
     "my_app.db.hosts": [
       doc: "Remote database hosts",

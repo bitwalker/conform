@@ -98,7 +98,6 @@
           case val do
             :active ->
               data = %{log: :warn}
-              more_data = %{data | :log => :warn}
               {:on, [data: data]}
             :'active-debug' -> {:on, [debug: true]}
             :passive        -> {:off, []}

@@ -57,7 +57,15 @@ defmodule ConfTranslateTest do
     assert expected == conf
   end
 
+  # Something was changed in Elixir 1.9 dependencies handling and now
+  # it uses top-level dependencies of conform instead of fixtures applications
+  # in this test. That's why Mix.Task.run/1 was replaced with System.cmd/2
+  # and only mix conform.archive task is only called in Mix.project.in_project
+  # context. Otherwise Elixir 1.9 will not find fake_app dependency, but instead of
+  # this top-level dependencies will be used (dependencies of conform itself).
   test "can generate config as Elixir terms from .conf and schema with imports" do
+    # Application.load :example_app
+    # Application.load :fake_app
     cwd = File.cwd!
     script = Path.join([cwd, "priv", "bin", "conform"])
     example_app_path = Path.join([cwd, "test", "fixtures", "example_app"])
@@ -68,26 +76,29 @@ defmodule ConfTranslateTest do
 
     File.touch(sys_config_path)
     capture_io(fn ->
-      {:ok, zip_path, _build_files} =
-        Mix.Project.in_project(:example_app, example_app_path,
+        File.cd(example_app_path)
+        System.put_env("MIX_ENV", "test")
+        System.cmd("mix", ["deps.get"])
+        System.cmd("mix", ["deps.compile"])
+        System.cmd("mix", ["compile"])
+
+        {:ok, zip_path, _build_files} = Mix.Project.in_project(:example_app, example_app_path,
           fn _ ->
-            Mix.Task.run("deps.get")
-            Mix.Task.run("deps.compile")
-            Mix.Task.run("compile")
-            Mix.Task.run("conform.archive", [schema_path])
+            Mix.Tasks.Conform.Archive.run([schema_path])
           end)
+        File.cd(cwd)
 
-      expected = [
-        fake_app: [greeting: "hi!"],
-        test: [another_val: 3, debug_level: :info, env: :prod]
-      ]
+        expected = [
+          fake_app: [greeting: "hi!"],
+          test: [another_val: 3, debug_level: :info, env: :prod]
+        ]
 
-      _ = Mix.Task.run("escript.build", ["--force"])
-      {_output, 0} = System.cmd(script, ["--schema", schema_path, "--conf", conf_path, "--output-dir", sys_config_dir])
-      {:ok, [sysconfig]} = :file.consult(sys_config_path)
-      assert "test.schema.ez" = Path.basename(zip_path)
-      assert ^expected = Conform.Utils.sort_kwlist(sysconfig)
-      File.rm(sys_config_path)
+        _ = Mix.Task.run("escript.build", ["--force"])
+        {_output, 0} = System.cmd(script, ["--schema", schema_path, "--conf", conf_path, "--output-dir", sys_config_dir])
+        {:ok, [sysconfig]} = :file.consult(sys_config_path)
+        assert "test.schema.ez" = Path.basename(zip_path)
+        assert ^expected = Conform.Utils.sort_kwlist(sysconfig)
+        File.rm(sys_config_path)
     end)
   end
 
@@ -189,7 +200,7 @@ defmodule ConfTranslateTest do
 
     config_path = Path.join(System.tmp_dir!, "conform_test.config")
     :ok    = config_path |> Conform.SysConfig.write(config)
-    result = config_path |> String.to_char_list |> :file.consult
+    result = config_path |> String.to_charlist |> :file.consult
     config_path |> File.rm!
     assert {:ok, [^config]} = result
   end

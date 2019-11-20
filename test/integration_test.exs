@@ -131,7 +131,7 @@ defmodule IntegrationTest do
       transforms: [],
       validators: []
     ]
-    """ |> String.strip(?\n) == result
+    """ |> String.trim() == result
   end
 
 end

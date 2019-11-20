@@ -34,14 +34,14 @@
       default: []
     ],
     # just a val
-    "some_val": [
+    some_val: [
       doc:      "Just some atom.",
       to:       "my_app.some_val",
       datatype: :atom,
       default:  :foo
     ],
 
-    "some_val2": [
+    some_val2: [
       doc:      "Just some float.",
       to:       "my_app.some_val2",
       datatype: :float,

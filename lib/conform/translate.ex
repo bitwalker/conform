@@ -140,7 +140,7 @@ defmodule Conform.Translate do
                          val -> parse_datatype(datatype, [val], mapping)
                        end
                    end
-        for {conf_key, value} <- results, not datatype in [:complex, [list: :complex]] do
+        for {conf_key, value} <- results, datatype not in [:complex, [list: :complex]] do
           parsed = case value do
             nil -> default
             _   -> parse_datatype(datatype, List.wrap(value), mapping)
