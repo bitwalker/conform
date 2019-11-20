@@ -94,7 +94,7 @@ defmodule Conform.ReleasePlugin do
   def after_package(_release), do: nil
   def after_cleanup(_args), do: nil
 
-  defp debug(message), do: apply(Mix.Releases.Logger, :debug, ["conform: " <> message])
+  defp debug(message), do: apply(Conform.Logger, :debug, ["conform: " <> message])
 
   defp add_archive(conform_overlays, release, schema_src) do
     # generate archive

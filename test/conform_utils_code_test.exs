@@ -5,7 +5,7 @@ defmodule ConformCodeTest do
   test "can stringify function and case blocks" do
     source = """
     [transforms: [
-      "single_clause": fn val ->
+      single_clause: fn val ->
         case val do
           foo when foo in [:foo] ->
             bar = String.to_atom("bar")
@@ -16,7 +16,7 @@ defmodule ConformCodeTest do
           :baz -> :qux
         end
       end,
-      "multi_clause": fn
+      multi_clause: fn
         :foo -> bar
         val ->
           case val do
@@ -56,7 +56,7 @@ defmodule ConformCodeTest do
         end
       ]
     ]
-    """ |> String.strip(?\n)
+    """ |> String.trim()
 
     {:ok, quoted} = Code.string_to_quoted(source)
     assert stringified == Conform.Utils.Code.stringify(quoted)
@@ -80,7 +80,7 @@ defmodule ConformCodeTest do
     * active-debug: it's going to be active, with verbose debugging information
     Just testing "nested quotes"
     \"\"\"
-    """ |> String.strip(?\n)
+    """ |> String.trim()
 
     {:ok, singleline_quoted} = singleline |> Macro.to_string |> Code.string_to_quoted
     {:ok, multiline_quoted}  = multiline |> Macro.to_string |> Code.string_to_quoted
@@ -131,7 +131,7 @@ defmodule ConformCodeTest do
         ]
       ]
     ]
-    """ |> String.strip(?\n)
+    """ |> String.trim()
 
     {:ok, quoted} = data |> Code.string_to_quoted
     {schema, _} = Code.eval_quoted(quoted, file: "nofile", line: 0)
@@ -148,7 +148,6 @@ defmodule ConformCodeTest do
           case val do
             :active ->
               data = %{log: :warn}
-              more_data = %{data | :log => :warn}
               {:on, [data: data]}
             :'active-debug' -> {:on, [debug: true]}
             :passive        -> {:off, []}
@@ -176,7 +175,6 @@ defmodule ConformCodeTest do
             case val do
               :active ->
                 data = %{log: :warn}
-                more_data = %{data | log: :warn}
                 {:on, [data: data]}
               :"active-debug" ->
                 {:on, [debug: true]}
@@ -199,7 +197,7 @@ defmodule ConformCodeTest do
         end
       ]
     ]
-    """ |> String.strip(?\n)
+    """ |> String.trim()
 
     {:ok, quoted} = data |> Code.string_to_quoted
     assert expected == (quoted |> Conform.Utils.Code.stringify)

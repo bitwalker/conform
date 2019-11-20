@@ -127,7 +127,7 @@
   ],
   transforms: [
     "evl_daemon.zones": fn (conf) ->
-      [{key, zones}]  = Conform.Conf.get(conf, "evl_daemon.zones")
+      [{_key, zones}]  = Conform.Conf.get(conf, "evl_daemon.zones")
 
       Enum.reduce(zones, Map.new, fn [zone, description], zone_map ->
          Map.put(
@@ -138,7 +138,7 @@
       end)
     end,
     "evl_daemon.partitions": fn (conf) ->
-      [{key, partitions}]  = Conform.Conf.get(conf, "evl_daemon.partitions")
+      [{_key, partitions}]  = Conform.Conf.get(conf, "evl_daemon.partitions")
 
       Enum.reduce(partitions, Map.new, fn [partition, description], partition_map ->
          Map.put(

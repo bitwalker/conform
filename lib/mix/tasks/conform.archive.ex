@@ -5,7 +5,6 @@ defmodule Mix.Tasks.Conform.Archive do
   """
 
   def run([schema_path]) do
-    Mix.Tasks.Loadpaths.run([])
     curr_path  = File.cwd!
     schema_dir = Path.dirname(schema_path) |> Path.expand
     [release_name|_] = String.split(Path.basename(schema_path), ".")
@@ -22,7 +21,7 @@ defmodule Mix.Tasks.Conform.Archive do
       {[], []} ->
         {:ok, "", []}
       {_, _}   ->
-        specified_deps = Mix.Dep.loaded(env: Mix.env)
+        specified_deps = Mix.Dep.load_on_environment([env: Mix.env])
         # collect deps which are specifed outside of deps,
         # like: [:name, path: "path_to_lib"]
         deps_paths =
